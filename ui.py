@@ -420,37 +420,35 @@ input:focus,select:focus{border-color:var(--accent)}
 
 <!-- Step 1: Connect -->
 <div class="step active" id="step1">
-  <div class="step-header"><span class="step-num">1</span><span class="step-title">Log in to Bankr</span></div>
-  <p class="step-desc">Sign up or log in with your email. Your wallet is created automatically.<br><a href="https://bankr.bot/" target="_blank">What is Bankr?</a></p>
+  <div class="step-header"><span class="step-num">1</span><span class="step-title">Connect to Bankr</span></div>
+  <p class="step-desc">Paste your API key to connect. Get one at <a href="https://bankr.bot/api" target="_blank">bankr.bot/api</a><br><a href="https://bankr.bot/" target="_blank">What is Bankr?</a></p>
   <div class="step-body">
     <div class="login-card">
-      <div class="login-method active" id="loginEmail">
-        <div class="login-field">
-          <label>Email Address</label>
-          <div class="input-group">
-            <div class="input-icon">&#9993;</div>
-            <input type="email" id="emailInput" placeholder="you@example.com">
-            <button class="btn btn-accent btn-sm" id="btnSendOtp" onclick="sendOtp()">Send Code</button>
-          </div>
-        </div>
-        <div id="otpSection" class="otp-reveal">
-          <label>Verification Code</label>
-          <div class="input-group">
-            <div class="input-icon" style="font-size:16px">&#128274;</div>
-            <input type="text" id="otpInput" placeholder="123456" maxlength="8" style="font-family:var(--mono);letter-spacing:6px;font-size:18px">
-            <button class="btn btn-green btn-sm" onclick="verifyOtp()">Verify</button>
-          </div>
-        </div>
-      </div>
-      <div style="text-align:center;margin-top:14px"><a href="#" onclick="toggleApiKey();return false" style="color:var(--dim);font-size:12px;text-decoration:underline dotted;text-underline-offset:3px" id="apiKeyToggle">Or use an existing API key</a></div>
-      <div id="apiKeySection" class="otp-reveal">
+      <div>
         <label>API Key</label>
         <div class="input-group">
           <div class="input-icon" style="font-size:14px">&#128273;</div>
           <input type="password" id="apiKeyInput" placeholder="bk_..." style="font-family:var(--mono);font-size:13px">
           <button class="btn btn-green btn-sm" onclick="connectApiKey()">Connect</button>
         </div>
-        <div style="font-size:11px;color:var(--dim);margin-top:6px">Get a key at <a href="https://bankr.bot/api" target="_blank" style="color:var(--accent)">bankr.bot/api</a> &mdash; enable Agent API &amp; LLM Gateway, turn off Read-Only</div>
+        <div style="font-size:11px;color:var(--dim);margin-top:6px">Enable <strong>Agent API</strong> &amp; <strong>LLM Gateway</strong>, turn off <strong>Read-Only</strong></div>
+      </div>
+      <div style="text-align:center;margin-top:14px"><a href="#" onclick="toggleEmailLogin();return false" style="color:var(--dim);font-size:12px;text-decoration:underline dotted;text-underline-offset:3px" id="emailToggle">New user? Sign up with email</a></div>
+      <div id="emailSection" class="otp-reveal">
+        <label>Email Address</label>
+        <div class="input-group">
+          <div class="input-icon">&#9993;</div>
+          <input type="email" id="emailInput" placeholder="you@example.com">
+          <button class="btn btn-accent btn-sm" id="btnSendOtp" onclick="sendOtp()">Send Code</button>
+        </div>
+        <div id="otpSection" class="otp-reveal">
+          <label style="margin-top:10px">Verification Code</label>
+          <div class="input-group">
+            <div class="input-icon" style="font-size:16px">&#128274;</div>
+            <input type="text" id="otpInput" placeholder="123456" maxlength="8" style="font-family:var(--mono);letter-spacing:6px;font-size:18px">
+            <button class="btn btn-green btn-sm" onclick="verifyOtp()">Verify</button>
+          </div>
+        </div>
       </div>
       <div class="login-legal">By continuing you accept our <a href="/terms" target="_blank">Terms</a> &amp; <a href="/privacy" target="_blank">Privacy Policy</a></div>
     </div>
@@ -574,14 +572,14 @@ function showStatus(elId,cls,msg){const el=document.getElementById(elId);if(!msg
 function goStep(n){document.getElementById('step'+currentStep).classList.remove('active');currentStep=n;document.getElementById('step'+n).classList.add('active');updateProgress();if(n===3)loadWallet();if(n===4)checkStake();if(n===5)loadLLMCredits()}
 function confirmBankrConfig(){showStatus('step2Status','');goStep(3)}
 
-function toggleApiKey(){const s=document.getElementById('apiKeySection');s.classList.toggle('show');const t=document.getElementById('apiKeyToggle');t.textContent=s.classList.contains('show')?'Use email login instead':'Or use an existing API key'}
+function toggleEmailLogin(){const s=document.getElementById('emailSection');s.classList.toggle('show');const t=document.getElementById('emailToggle');t.textContent=s.classList.contains('show')?'Already have a key? Paste it above':'New user? Sign up with email'}
 async function connectApiKey(){
   const key=document.getElementById('apiKeyInput').value.trim();
   if(!key||!key.startsWith('bk_')){showStatus('step1Status','err','Enter a valid API key (starts with bk_)');return}
   showStatus('step1Status','info','<span class="spinner"></span> Connecting...');
   const r=await fetch('/api/setup/connect',H('POST',{api_key:key}));
   const d=await r.json();
-  if(d.ok){updateCSRF(d.csrf_token);showStatus('step1Status','ok','Connected!');setTimeout(()=>goStep(2),500)}
+  if(d.ok){updateCSRF(d.csrf_token);showStatus('step1Status','ok','Connected! Redirecting...');setTimeout(()=>window.location.href='/dashboard',500)}
   else showStatus('step1Status','err',d.error||'Failed')
 }
 let _privyAppId='',_privyClientId='';
@@ -602,7 +600,7 @@ async function verifyOtp(){
   const r=await fetch('/api/setup/verify-otp',H('POST',{email,code,privy_app_id:_privyAppId,privy_client_id:_privyClientId}));
   const d=await r.json();
   if(d.ok){updateCSRF(d.csrf_token);showStatus('step1Status','ok','Connected!');setTimeout(()=>goStep(2),500)}
-  else if(d.need_api_key){showStatus('step1Status','info','Account verified! Go to <a href="https://bankr.bot/api" target="_blank" style="color:var(--accent);font-weight:600">bankr.bot/api</a> &mdash; create an API key if you don\'t have one, then paste it below.');document.getElementById('apiKeySection').classList.add('show');document.getElementById('apiKeyToggle').style.display='none'}
+  else if(d.need_api_key){showStatus('step1Status','info','Account created! Now create an API key at <a href="https://bankr.bot/api" target="_blank" style="color:var(--accent);font-weight:600">bankr.bot/api</a> and paste it above.');document.getElementById('emailSection').classList.remove('show');document.getElementById('emailToggle').style.display='none'}
   else showStatus('step1Status','err',d.error||'Failed')
 }
 async function loadWallet(){
@@ -1121,9 +1119,14 @@ class MinerUI:
         @app.route("/")
         def index():
             session_id, state = self._get_session_state()
-            if session_id and state and state.setup_complete:
+            if session_id and state:
                 return self._serve_dashboard(session_id, state)
             if session_id:
+                # Session exists but no state yet — check if they have an API key
+                api_key = self._sessions.get_api_key(session_id)
+                if api_key:
+                    state = self._create_state(session_id)
+                    return self._serve_dashboard(session_id, state)
                 return self._serve_setup(session_id)
             return LANDING_HTML
 
