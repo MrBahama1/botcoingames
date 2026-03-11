@@ -602,7 +602,7 @@ async function verifyOtp(){
   const r=await fetch('/api/setup/verify-otp',H('POST',{email,code,privy_app_id:_privyAppId,privy_client_id:_privyClientId}));
   const d=await r.json();
   if(d.ok){updateCSRF(d.csrf_token);showStatus('step1Status','ok','Connected!');setTimeout(()=>goStep(2),500)}
-  else if(d.need_api_key){showStatus('step1Status','info','Account verified! Paste your API key from <a href="https://bankr.bot/api" target="_blank" style="color:var(--accent);font-weight:600">bankr.bot/api</a> to continue.');document.getElementById('apiKeySection').classList.add('show');document.getElementById('apiKeyToggle').style.display='none'}
+  else if(d.need_api_key){showStatus('step1Status','info','Account verified! Go to <a href="https://bankr.bot/api" target="_blank" style="color:var(--accent);font-weight:600">bankr.bot/api</a> &mdash; create an API key if you don\'t have one, then paste it below.');document.getElementById('apiKeySection').classList.add('show');document.getElementById('apiKeyToggle').style.display='none'}
   else showStatus('step1Status','err',d.error||'Failed')
 }
 async function loadWallet(){
