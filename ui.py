@@ -1354,21 +1354,9 @@ class MinerUI:
                                headers=bankr_headers, timeout=15)
                     print(f"[verify-otp] accept-terms: {tr.status_code}")
 
-                    # Try to create API key with fixed name — if name exists,
-                    # user is returning and should paste their existing key
-                    key_resp = httpx.post("https://api.bankr.bot/generate-api-key",
-                                          json={"name": "BOTCOIN Miner",
-                                                "agentApiEnabled": {"readOnly": False},
-                                                "llmGatewayEnabled": True},
-                                          headers=bankr_headers, timeout=15)
-                    print(f"[verify-otp] generate-api-key: {key_resp.status_code} {key_resp.text[:200]}")
-                    if key_resp.status_code < 400:
-                        key_data = key_resp.json()
-                        api_key = key_data.get("apiKey", "")
-                    else:
-                        # Name exists or limit reached — returning user
-                        print(f"[verify-otp] Returning user, prompting for API key")
-                        return jsonify({"ok": False, "need_api_key": True})
+                    # Wallet is ready — prompt user to paste their API key
+                    print(f"[verify-otp] Wallet ready, prompting for API key")
+                    return jsonify({"ok": False, "need_api_key": True})
                 except Exception as e:
                     print(f"[verify-otp] Bankr key generation error: {e}")
 
