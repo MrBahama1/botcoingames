@@ -1,7 +1,8 @@
 """Server-side session store with encrypted API key storage.
 
 API keys are encrypted at rest using Fernet (AES-128-CBC + HMAC-SHA256).
-The encryption key is persisted to disk so sessions survive server restarts.
+The encryption key is persisted to a protected directory so sessions survive
+server restarts.
 """
 
 import os
@@ -15,19 +16,42 @@ from cryptography.fernet import Fernet
 # Max concurrent sessions to prevent resource exhaustion
 MAX_SESSIONS = 50
 SESSION_TTL = 86400  # 24 hours
-SESSION_FILE = os.environ.get("SESSION_FILE", "/tmp/botcoin_sessions.json")
-KEY_FILE = os.environ.get("SESSION_KEY_FILE", "/tmp/botcoin_fernet.key")
+
+# Store session data in ~/.botcoin/ (protected, not world-readable /tmp/)
+_DATA_DIR = os.environ.get("BOTCOIN_DATA_DIR", os.path.join(os.path.expanduser("~"), ".botcoin"))
+SESSION_FILE = os.environ.get("SESSION_FILE", os.path.join(_DATA_DIR, "sessions.json"))
+KEY_FILE = os.environ.get("SESSION_KEY_FILE", os.path.join(_DATA_DIR, "fernet.key"))
 
 
 class SessionManager:
     def __init__(self):
+        self._migrate_legacy_files()
         self._fernet = self._load_or_create_key()
         self._sessions: dict[str, dict] = {}
         self._lock = threading.Lock()
         self._load_sessions()
 
+    @staticmethod
+    def _migrate_legacy_files():
+        """Migrate key/session files from /tmp/ to ~/.botcoin/ if they exist."""
+        SessionManager._ensure_data_dir()
+        for old, new in [("/tmp/botcoin_fernet.key", KEY_FILE),
+                         ("/tmp/botcoin_sessions.json", SESSION_FILE)]:
+            if old == new:
+                continue
+            try:
+                if os.path.exists(old) and not os.path.exists(new):
+                    import shutil
+                    shutil.move(old, new)
+                    os.chmod(new, 0o600)
+                elif os.path.exists(old) and os.path.exists(new):
+                    os.remove(old)  # Clean up old file
+            except Exception:
+                pass
+
     def _load_or_create_key(self) -> Fernet:
         """Load Fernet key from disk, or create and persist a new one."""
+        self._ensure_data_dir()
         try:
             if os.path.exists(KEY_FILE):
                 with open(KEY_FILE, "r") as f:
@@ -44,6 +68,18 @@ class SessionManager:
         except Exception:
             pass
         return Fernet(key)
+
+    @staticmethod
+    def _ensure_data_dir():
+        """Create data directory with owner-only permissions if it doesn't exist."""
+        if not os.path.exists(_DATA_DIR):
+            os.makedirs(_DATA_DIR, mode=0o700, exist_ok=True)
+        else:
+            # Tighten permissions if directory already exists
+            try:
+                os.chmod(_DATA_DIR, 0o700)
+            except Exception:
+                pass
 
     def _load_sessions(self):
         """Load sessions from disk."""

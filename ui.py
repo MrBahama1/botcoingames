@@ -20,7 +20,7 @@ from config import AVAILABLE_MODELS, STAKE_AMOUNTS
 from session_manager import SessionManager
 from mining_manager import MiningManager
 from auth import (
-    require_auth, csrf_protect, validate_email,
+    require_auth, csrf_protect, origin_check, validate_email,
     validate_otp, sanitize_log
 )
 
@@ -1283,6 +1283,7 @@ class MinerUI:
 
         # --- Setup API endpoints ---
         @app.route("/api/setup/connect", methods=["POST"])
+        @origin_check()
         def setup_connect():
             body = request.get_json(silent=True) or {}
             from auth import validate_api_key
@@ -1331,6 +1332,7 @@ class MinerUI:
             return resp
 
         @app.route("/api/setup/send-otp", methods=["POST"])
+        @origin_check()
         def setup_send_otp():
             body = request.get_json(silent=True) or {}
             email = body.get("email", "").strip()
@@ -1383,6 +1385,7 @@ class MinerUI:
                 return jsonify({"ok": False, "error": "Failed to send code. Please try again."})
 
         @app.route("/api/setup/verify-otp", methods=["POST"])
+        @origin_check()
         def setup_verify_otp():
             body = request.get_json(silent=True) or {}
             email = body.get("email", "").strip()

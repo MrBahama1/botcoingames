@@ -46,6 +46,36 @@ def csrf_protect(session_manager):
     return decorator
 
 
+def origin_check():
+    """Decorator: reject cross-origin POST requests to unauthenticated endpoints.
+
+    Checks Origin and Referer headers to prevent CSRF on pre-auth endpoints
+    (like /api/setup/connect) that don't have session-based CSRF tokens yet.
+    """
+    def decorator(f):
+        @functools.wraps(f)
+        def wrapped(*args, **kwargs):
+            origin = request.headers.get("Origin", "")
+            referer = request.headers.get("Referer", "")
+            host = request.host_url.rstrip("/")
+
+            # Allow same-origin requests (Origin matches host)
+            if origin and origin.rstrip("/") == host:
+                return f(*args, **kwargs)
+            # Allow if Referer matches host (browsers send this on same-origin)
+            if referer and referer.startswith(host):
+                return f(*args, **kwargs)
+            # Allow requests with no Origin/Referer (direct API calls, curl)
+            # but require Content-Type: application/json (not sent by HTML forms)
+            if not origin and not referer:
+                ct = request.content_type or ""
+                if "application/json" in ct:
+                    return f(*args, **kwargs)
+            return jsonify({"ok": False, "error": "Cross-origin request blocked"}), 403
+        return wrapped
+    return decorator
+
+
 def validate_api_key(key: str) -> bool:
     """Check API key format without calling Bankr."""
     return bool(API_KEY_PATTERN.match(key))
