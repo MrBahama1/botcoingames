@@ -384,6 +384,15 @@ input:focus,select:focus{border-color:var(--accent)}
       </div>
       <p class="terms">By verifying you accept our <a href="/terms" target="_blank">Terms of Service</a> and <a href="/privacy" target="_blank">Privacy Policy</a></p>
     </div>
+    <div class="or">or</div>
+    <div id="apiKeySection">
+      <label>API Key</label>
+      <div class="row">
+        <input type="password" id="apiKeyInput" placeholder="bk_...">
+        <button class="btn btn-ghost btn-sm" onclick="connectApiKey()">Connect</button>
+      </div>
+      <p class="terms">Paste a key from <a href="https://bankr.bot/api" target="_blank">bankr.bot/api</a></p>
+    </div>
     <div id="step1Status"></div>
   </div>
 </div>
@@ -509,6 +518,15 @@ async function sendOtp(){
   const d=await r.json();
   if(d.ok){showStatus('step1Status','ok','Code sent! Check email.');document.getElementById('otpSection').style.display='block'}
   else{showStatus('step1Status','err',d.error||'Failed');document.getElementById('btnSendOtp').disabled=false}
+}
+async function connectApiKey(){
+  const key=document.getElementById('apiKeyInput').value.trim();
+  if(!key||!key.startsWith('bk_')){showStatus('step1Status','err','Enter a valid API key (starts with bk_)');return}
+  showStatus('step1Status','info','<span class="spinner"></span> Connecting...');
+  const r=await fetch('/api/setup/connect',H('POST',{api_key:key}));
+  const d=await r.json();
+  if(d.ok){updateCSRF(d.csrf_token);showStatus('step1Status','ok','Connected!');setTimeout(()=>goStep(2),500)}
+  else showStatus('step1Status','err',d.error||'Failed')
 }
 async function verifyOtp(){
   const email=document.getElementById('emailInput').value.trim(),code=document.getElementById('otpInput').value.trim();
@@ -1073,6 +1091,37 @@ class MinerUI:
                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
         # --- Setup API endpoints ---
+        @app.route("/api/setup/connect", methods=["POST"])
+        def setup_connect():
+            body = request.get_json(silent=True) or {}
+            from auth import validate_api_key
+            api_key = body.get("api_key", "").strip()
+            if not api_key or not validate_api_key(api_key):
+                return jsonify({"ok": False, "error": "Invalid API key format"})
+
+            ip = request.remote_addr or "unknown"
+            if not _check_rate_limit(f"connect:{ip}", 5, 60):
+                return jsonify({"ok": False, "error": "Too many attempts. Try again in a minute."}), 429
+
+            # Verify the key works by calling Bankr
+            try:
+                import httpx
+                resp = httpx.get("https://api.bankr.bot/agent/me",
+                                 headers={"X-API-Key": api_key}, timeout=15)
+                if resp.status_code >= 400:
+                    return jsonify({"ok": False, "error": "Invalid API key. Check it at bankr.bot/api."})
+            except Exception:
+                return jsonify({"ok": False, "error": "Could not verify key. Please try again."})
+
+            session_id = sessions.create_session(api_key)
+            self._create_state(session_id)
+            csrf_token = sessions.get_csrf_token(session_id)
+            resp = jsonify({"ok": True, "csrf_token": csrf_token})
+            resp.set_cookie("session_id", session_id,
+                            httponly=True, samesite="Strict", max_age=86400,
+                            secure=request.is_secure)
+            return resp
+
         @app.route("/api/setup/send-otp", methods=["POST"])
         def setup_send_otp():
             body = request.get_json(silent=True) or {}
