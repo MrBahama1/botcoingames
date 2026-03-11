@@ -33,6 +33,7 @@ class MinerState:
     challenge_questions: list = field(default_factory=list)
     challenge_constraints: list = field(default_factory=list)
     challenge_doc_preview: str = ""  # first 500 chars of doc
+    challenge_doc_full: str = ""  # full doc text
     solve_artifact: str = ""
     solve_passed: str = ""  # "", "pass", "fail"
     solve_failed_constraints: list = field(default_factory=list)

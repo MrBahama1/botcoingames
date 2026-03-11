@@ -726,7 +726,7 @@ DASHBOARD_HTML = r"""<!DOCTYPE html>
 .constraint-item{padding:4px 0;font-size:11px;color:var(--dim);display:flex;gap:6px;align-items:flex-start}
 .constraint-idx{color:var(--accent);font-weight:700;flex-shrink:0;font-size:10px;min-width:20px}
 .constraint-fail{color:var(--red)}.constraint-pass{color:var(--green)}
-.doc-preview{font-size:11px;color:var(--muted);font-style:italic;padding:8px 0;border-bottom:1px solid var(--border);margin-bottom:6px;line-height:1.5}
+.doc-preview{font-size:11px;color:var(--muted);font-style:italic;padding:8px 0;border-bottom:1px solid var(--border);margin-bottom:6px;line-height:1.5;max-height:400px;overflow-y:auto}
 /* LLM panel */
 .llm-panel{display:flex;flex-direction:column;grid-column:2/4}
 .llm-content{flex:1;overflow-y:auto;font-family:var(--mono);font-size:11px;white-space:pre-wrap;word-break:break-word;color:var(--dim);padding:10px;background:var(--bg);border-radius:var(--radius-sm)}
@@ -900,6 +900,8 @@ function fmtCooldown(secs){if(secs<=0)return'Ready!';const h=Math.floor(secs/360
 
 function connectSSE(){const es=new EventSource('/events');es.onmessage=function(e){const d=JSON.parse(e.data);if(d.version===lastVersion)return;lastVersion=d.version;update(d)};es.onerror=function(){es.close();setTimeout(connectSSE,2000)}}
 async function refreshBalances(){try{const r=await fetch('/api/refresh-balances');const d=await r.json();if(d.ok){lastVersion=-1}}catch(e){}}
+let _docExpanded=false;
+async function toggleFullDoc(){const pre=document.getElementById('docPreviewText');const full=document.getElementById('docFullText');if(!pre||!full)return;if(_docExpanded){full.style.display='none';pre.style.display='';_docExpanded=false}else{if(!full.textContent){try{const r=await fetch('/api/challenge-doc');const d=await r.json();full.textContent=d.doc||'No document available'}catch(e){full.textContent='Failed to load'}}full.style.display='block';pre.style.display='none';_docExpanded=true}}
 setTimeout(refreshBalances,500);setInterval(refreshBalances,120000);
 
 function update(d){
@@ -930,7 +932,7 @@ function update(d){
   // Challenge panel
   const cc=document.getElementById('challengeContent');
   if(d.challenge_questions&&d.challenge_questions.length>0){let html='';
-    if(d.challenge_doc_preview)html+='<div class="doc-preview">'+esc(d.challenge_doc_preview.slice(0,300))+(d.challenge_doc_preview.length>300?'...':'')+'</div>';
+    if(d.challenge_doc_preview){html+='<div class="doc-preview" style="cursor:pointer;position:relative" onclick="toggleFullDoc()" title="Click to expand full document"><span id="docPreviewText">'+esc(d.challenge_doc_preview.slice(0,300))+(d.challenge_doc_preview.length>300?'... <span style="color:var(--accent);font-size:10px">[show full]</span>':'')+'</span><div id="docFullText" style="display:none;white-space:pre-wrap"></div></div>';}
     html+='<div style="font-size:10px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin:8px 0 4px">Questions</div>';
     d.challenge_questions.forEach((q,i)=>{html+='<div class="q-item"><span class="q-label">Q'+(i+1)+'</span><div class="q-text">'+esc(q)+'</div></div>'});
     if(d.challenge_constraints&&d.challenge_constraints.length>0){html+='<div style="font-size:10px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin:12px 0 4px">Constraints</div>';
@@ -1570,6 +1572,15 @@ class MinerUI:
                 return jsonify({"ok": True})
             except Exception:
                 return jsonify({"ok": False})
+
+        @app.route("/api/challenge-doc")
+        @auth
+        def challenge_doc():
+            session_id = g.session_id
+            state = self._get_state(session_id)
+            if not state:
+                return jsonify({"doc": ""})
+            return jsonify({"doc": state.challenge_doc_full})
 
         @app.route("/api/control", methods=["POST"])
         @auth

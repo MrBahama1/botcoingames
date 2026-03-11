@@ -105,6 +105,7 @@ class MiningLoop:
         state.challenge_questions = challenge.get("questions", [])
         state.challenge_constraints = challenge.get("constraints", [])
         state.challenge_doc_preview = challenge.get("doc", "")[:500]
+        state.challenge_doc_full = challenge.get("doc", "")
         state.solve_artifact = ""
         state.solve_passed = ""
         state.solve_failed_constraints = []
