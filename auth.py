@@ -2,6 +2,7 @@
 
 import re
 import functools
+from urllib.parse import urlparse
 from flask import request, jsonify, g
 
 
@@ -51,20 +52,28 @@ def origin_check():
 
     Checks Origin and Referer headers to prevent CSRF on pre-auth endpoints
     (like /api/setup/connect) that don't have session-based CSRF tokens yet.
+    Uses the Host header for comparison so it works behind reverse proxies.
     """
     def decorator(f):
         @functools.wraps(f)
         def wrapped(*args, **kwargs):
             origin = request.headers.get("Origin", "")
             referer = request.headers.get("Referer", "")
-            host = request.host_url.rstrip("/")
+            # request.host includes port and respects X-Forwarded-Host
+            host = request.host  # e.g. "botcoin.games" or "localhost:5000"
 
-            # Allow same-origin requests (Origin matches host)
-            if origin and origin.rstrip("/") == host:
-                return f(*args, **kwargs)
-            # Allow if Referer matches host (browsers send this on same-origin)
-            if referer and referer.startswith(host):
-                return f(*args, **kwargs)
+            # Allow same-origin requests (Origin's host matches Host header)
+            if origin:
+                parsed = urlparse(origin)
+                origin_host = parsed.netloc  # e.g. "botcoin.games"
+                if origin_host == host:
+                    return f(*args, **kwargs)
+            # Allow if Referer's host matches Host header
+            if referer:
+                parsed = urlparse(referer)
+                referer_host = parsed.netloc
+                if referer_host == host:
+                    return f(*args, **kwargs)
             # Allow requests with no Origin/Referer (direct API calls, curl)
             # but require Content-Type: application/json (not sent by HTML forms)
             if not origin and not referer:
