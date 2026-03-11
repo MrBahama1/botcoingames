@@ -1257,13 +1257,14 @@ class MinerUI:
         def setup_verify_otp():
             body = request.get_json(silent=True) or {}
             email = body.get("email", "").strip()
-            code = body.get("code", "").strip()
+            code = re.sub(r'[^a-zA-Z0-9]', '', body.get("code", "").strip())
             privy_app_id = body.get("privy_app_id", "").strip()
             privy_client_id = body.get("privy_client_id", "").strip()
             if not email or not validate_email(email):
                 return jsonify({"ok": False, "error": "Invalid email"})
             if not code or not validate_otp(code):
-                return jsonify({"ok": False, "error": "Invalid code format"})
+                print(f"[verify-otp] Code validation failed: '{code}' (len={len(code)})")
+                return jsonify({"ok": False, "error": "Invalid code format. Enter the 6-digit code from your email."})
 
             ip = request.remote_addr or "unknown"
             if not _check_rate_limit(f"verify:{ip}", 5, 60):
