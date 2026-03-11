@@ -841,23 +841,7 @@ DASHBOARD_HTML = r"""<!DOCTYPE html>
         <button class="btn btn-ghost btn-sm" style="width:100%;margin-top:8px" onclick="document.getElementById('sendReceivePanel').style.display='none'">Close</button>
       </div>
     </div>
-  </div>
-
-  <!-- Center: Stats + Pending Txs -->
-  <div class="stats-area">
-    <div class="card" style="flex-shrink:0">
-      <div class="card-title">Mining Stats</div>
-      <div class="stats-grid">
-        <div class="stat"><div class="stat-label">Solves</div><div class="stat-value green" id="sSolves">0</div></div>
-        <div class="stat"><div class="stat-label">Fails</div><div class="stat-value red" id="sFails">0</div></div>
-        <div class="stat"><div class="stat-label">Credits</div><div class="stat-value cyan" id="sCredits">0</div></div>
-        <div class="stat"><div class="stat-label">Epoch</div><div class="stat-value" id="sEpoch">--</div></div>
-        <div class="stat"><div class="stat-label">Uptime</div><div class="stat-value" id="sUptime" style="font-size:16px">0h 0m</div></div>
-        <div class="stat"><div class="stat-label">LLM Credits <a href="https://bankr.bot/llm?tab=credits" target="_blank" style="font-size:9px">&#8599;</a></div><div class="stat-value yellow" id="sLLM">--</div></div>
-        <div class="stat"><div class="stat-label">ETH (gas) <a href="https://app.across.to/bridge-and-swap" target="_blank" style="font-size:9px">&#8599;</a></div><div class="stat-value" id="sEth" style="font-size:16px">--</div></div>
-      </div>
-    </div>
-    <div class="card" style="flex-shrink:0">
+    <div class="card">
       <div class="card-title">Rewards <span id="claimCount" style="font-size:10px;color:var(--green);font-weight:400;text-transform:none;letter-spacing:0"></span></div>
       <div id="claimSection">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
@@ -872,6 +856,22 @@ DASHBOARD_HTML = r"""<!DOCTYPE html>
           <span>Epochs mined: <strong style="color:var(--text)" id="minedEpochCount">0</strong></span>
           <span>Total claimed: <strong style="color:var(--green)" id="totalClaimed">0</strong></span>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Center: Stats + Pending Txs -->
+  <div class="stats-area">
+    <div class="card" style="flex-shrink:0">
+      <div class="card-title">Mining Stats</div>
+      <div class="stats-grid">
+        <div class="stat"><div class="stat-label">Solves</div><div class="stat-value green" id="sSolves">0</div></div>
+        <div class="stat"><div class="stat-label">Fails</div><div class="stat-value red" id="sFails">0</div></div>
+        <div class="stat"><div class="stat-label">Credits</div><div class="stat-value cyan" id="sCredits">0</div></div>
+        <div class="stat"><div class="stat-label">Epoch</div><div class="stat-value" id="sEpoch">--</div></div>
+        <div class="stat"><div class="stat-label">Uptime</div><div class="stat-value" id="sUptime" style="font-size:16px">0h 0m</div></div>
+        <div class="stat"><div class="stat-label">LLM Credits <a href="https://bankr.bot/llm?tab=credits" target="_blank" style="font-size:9px">&#8599;</a></div><div class="stat-value yellow" id="sLLM">--</div></div>
+        <div class="stat"><div class="stat-label">ETH (gas) <a href="https://app.across.to/bridge-and-swap" target="_blank" style="font-size:9px">&#8599;</a></div><div class="stat-value" id="sEth" style="font-size:16px">--</div></div>
       </div>
     </div>
     <div class="card" style="flex:1;display:flex;flex-direction:column;overflow:hidden">
