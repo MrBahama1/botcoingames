@@ -1,0 +1,5 @@
+rich>=13.0
+openai>=1.0
+httpx>=0.25
+flask>=3.0
+cryptography>=42.0
