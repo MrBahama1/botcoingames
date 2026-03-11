@@ -28,6 +28,16 @@ class MinerState:
     log_lines: deque = field(default_factory=lambda: deque(maxlen=100))
     llm_output: str = ""
     cooldown_remaining: int = 0
+
+    # Challenge & solve details
+    challenge_questions: list = field(default_factory=list)
+    challenge_constraints: list = field(default_factory=list)
+    challenge_doc_preview: str = ""  # first 500 chars of doc
+    solve_artifact: str = ""
+    solve_passed: str = ""  # "", "pass", "fail"
+    solve_failed_constraints: list = field(default_factory=list)
+    solve_time: float = 0.0
+    solve_verification_issues: list = field(default_factory=list)
     start_time: float = field(default_factory=time.time)
     mining_active: bool = True
     _lock: threading.Lock = field(default_factory=threading.Lock, repr=False)
@@ -123,6 +133,14 @@ class MinerState:
                 "staked_amount": self.staked_amount,
                 "llm_output": self.llm_output,
                 "cooldown_remaining": self.cooldown_remaining,
+                "challenge_questions": list(self.challenge_questions),
+                "challenge_constraints": list(self.challenge_constraints),
+                "challenge_doc_preview": self.challenge_doc_preview,
+                "solve_artifact": self.solve_artifact,
+                "solve_passed": self.solve_passed,
+                "solve_failed_constraints": list(self.solve_failed_constraints),
+                "solve_time": self.solve_time,
+                "solve_verification_issues": list(self.solve_verification_issues),
                 "uptime": self.uptime,
                 "mining_active": self.mining_active,
                 "log_lines": list(self.log_lines),

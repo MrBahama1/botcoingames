@@ -100,6 +100,13 @@ class MiningLoop:
 
         state.current_challenge_id = challenge_id[:16] + "..."
         state.epoch_id = epoch_id
+        state.challenge_questions = challenge.get("questions", [])
+        state.challenge_constraints = challenge.get("constraints", [])
+        state.challenge_doc_preview = challenge.get("doc", "")[:500]
+        state.solve_artifact = ""
+        state.solve_passed = ""
+        state.solve_failed_constraints = []
+        state.solve_verification_issues = []
         state.bump()
         self.ui.log(
             f"Challenge: {challenge_id[:16]}... | "
@@ -138,12 +145,16 @@ class MiningLoop:
 
         artifact = extract_artifact(raw_response)
         state.llm_output = f"Solve time: {solve_time:.1f}s\n\n{raw_response[:2000]}"
+        state.solve_artifact = artifact
+        state.solve_time = solve_time
         state.bump()
         self.ui.log(f"Solved in {solve_time:.1f}s | Artifact: {artifact[:80]}...")
 
         # 5. Local verification
         self.ui.set_phase("VERIFYING")
         passed, issues = verify_artifact(artifact, challenge)
+        state.solve_verification_issues = issues
+        state.bump()
         for issue in issues:
             self.ui.log(f"  {issue}")
 
@@ -185,6 +196,8 @@ class MiningLoop:
             state.total_credits += credits_per_solve
             state.consecutive_fails = 0
             state.last_solve_time = time.time()
+            state.solve_passed = "pass"
+            state.solve_failed_constraints = []
             state.bump()
             self.ui.log(f"PASS! Credits earned: {credits_per_solve}")
 
@@ -205,6 +218,8 @@ class MiningLoop:
             failed = result.get("failedConstraintIndices", [])
             state.total_fails += 1
             state.consecutive_fails += 1
+            state.solve_passed = "fail"
+            state.solve_failed_constraints = failed
             state.bump()
             self.ui.log(f"FAIL — failed constraints: {failed}")
 

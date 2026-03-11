@@ -91,6 +91,184 @@ button{font-family:var(--font)}
 """
 
 # ---------------------------------------------------------------------------
+# Legal pages
+# ---------------------------------------------------------------------------
+LEGAL_CSS = """
+.legal{max-width:720px;margin:0 auto;padding:60px 24px 80px}
+.legal h1{font-size:28px;font-weight:700;margin-bottom:8px}
+.legal .updated{font-size:12px;color:var(--dim);margin-bottom:32px}
+.legal h2{font-size:17px;font-weight:700;margin:28px 0 10px;color:var(--accent)}
+.legal p,.legal li{font-size:14px;color:var(--dim);line-height:1.8;margin-bottom:10px}
+.legal ul,.legal ol{padding-left:24px;margin-bottom:16px}
+.legal a{color:var(--accent)}
+.legal .back{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--dim);margin-bottom:24px}
+.legal .back:hover{color:var(--accent)}
+"""
+
+TERMS_HTML = """<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Terms of Service — BOTCOIN Miner</title>
+<style>
+""" + SHARED_CSS + LEGAL_CSS + """
+</style></head><body>
+<div class="legal">
+<a href="/" class="back">&larr; Back</a>
+<h1>Terms of Service</h1>
+<p class="updated">Last updated: March 10, 2026</p>
+
+<h2>1. Parties and Acceptance</h2>
+<p>These Terms of Service ("Terms") constitute a legally binding agreement between you ("User," "you") and <strong>Question Labs LLC</strong> ("Company," "we," "us"), the operator of the BOTCOIN Miner software and related services (the "Service"). The Service integrates with <strong>Bankr Bot</strong> ("Service Provider"), a third-party platform for wallet management, transaction execution, and LLM gateway access. By accessing or using the Service, you acknowledge that you have read, understood, and agree to be bound by these Terms in their entirety. If you do not agree, you must not use the Service.</p>
+
+<h2>2. Nature of the Service</h2>
+<p>The Service is experimental software that automates participation in BOTCOIN mining challenges using large language models (LLMs). The Service interacts with blockchain smart contracts on the Base network (chain ID 8453) and third-party APIs. The Service is provided on an <strong>"AS IS" and "AS AVAILABLE"</strong> basis without warranties of any kind, whether express, implied, statutory, or otherwise, including but not limited to warranties of merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, reliability, or uninterrupted availability.</p>
+
+<h2>3. Eligibility</h2>
+<p>You must be at least 18 years of age and have the legal capacity to enter into binding agreements in your jurisdiction. You are solely responsible for ensuring that your use of the Service complies with all applicable laws, regulations, and ordinances in your jurisdiction, including but not limited to securities laws, tax laws, money transmission laws, and cryptocurrency regulations. The Service is not available in jurisdictions where cryptocurrency trading, staking, or mining is prohibited.</p>
+
+<h2>4. Account and API Keys</h2>
+<p>You are solely responsible for maintaining the confidentiality and security of your Bankr API key, email credentials, and any other authentication credentials. You agree not to share your credentials with any third party. You are fully responsible for all activities that occur under your account, whether or not authorized by you. We are not liable for any loss or damage arising from unauthorized access to your account.</p>
+
+<h2>5. Assumption of Risk</h2>
+<p>You expressly acknowledge and assume all risks associated with using the Service, including but not limited to:</p>
+<ul>
+<li><strong>Financial loss:</strong> Loss of cryptocurrency (including but not limited to BOTCOIN, ETH, and any other tokens) due to smart contract bugs, blockchain network failures, oracle manipulation, front-running, MEV extraction, bridge exploits, liquidity issues, token depegging, market volatility, or any other cause whatsoever.</li>
+<li><strong>Software defects:</strong> Bugs, errors, vulnerabilities, logic flaws, race conditions, or other defects in the Service, smart contracts, third-party integrations, or underlying infrastructure that may result in loss of funds, incorrect transactions, failed transactions, double spending, or other unintended outcomes.</li>
+<li><strong>LLM failures:</strong> Incorrect, incomplete, or failed LLM responses that result in failed mining challenges, wasted LLM credits, wasted gas fees, or other losses.</li>
+<li><strong>Third-party failures:</strong> Downtime, errors, security breaches, insolvency, or changes to Bankr Bot, LLM providers (including but not limited to Anthropic, OpenAI, Google), blockchain networks, DEXs, bridges, or any other third-party service the Service depends on.</li>
+<li><strong>Smart contract risk:</strong> The mining contract, staking contract, and token contract are third-party code not authored or audited by Question Labs LLC. Smart contracts are immutable once deployed and may contain undiscovered vulnerabilities.</li>
+<li><strong>Regulatory risk:</strong> Changes in laws, regulations, or enforcement actions that may affect the legality, availability, or value of BOTCOIN, the Service, or cryptocurrency in general.</li>
+<li><strong>Network risk:</strong> Blockchain congestion, reorganizations, forks, gas price spikes, or network outages.</li>
+<li><strong>Key management risk:</strong> Loss of access to your Bankr wallet or API key, whether due to Bankr service disruption, account compromise, or any other cause.</li>
+</ul>
+
+<h2>6. Limitation of Liability</h2>
+<p><strong>TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, IN NO EVENT SHALL QUESTION LABS LLC, ITS OFFICERS, DIRECTORS, EMPLOYEES, AGENTS, AFFILIATES, SUCCESSORS, OR ASSIGNS BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, PUNITIVE, OR EXEMPLARY DAMAGES, OR DAMAGES FOR LOSS OF PROFITS, REVENUE, GOODWILL, USE, DATA, TOKENS, CRYPTOCURRENCY, OR OTHER INTANGIBLE LOSSES (EVEN IF QUESTION LABS LLC HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES), ARISING OUT OF OR IN CONNECTION WITH YOUR USE OF OR INABILITY TO USE THE SERVICE.</strong></p>
+<p><strong>QUESTION LABS LLC'S TOTAL AGGREGATE LIABILITY TO YOU FOR ALL CLAIMS ARISING OUT OF OR RELATING TO THE SERVICE SHALL NOT EXCEED THE GREATER OF (A) THE AMOUNT YOU PAID TO QUESTION LABS LLC IN THE TWELVE (12) MONTHS PRECEDING THE CLAIM, OR (B) ONE HUNDRED US DOLLARS ($100.00).</strong></p>
+<p><strong>YOU ACKNOWLEDGE THAT THE SERVICE IS PROVIDED FREE OF CHARGE AND THAT THE LIMITATIONS OF LIABILITY SET FORTH HEREIN ARE A FUNDAMENTAL ELEMENT OF THE AGREEMENT BETWEEN YOU AND QUESTION LABS LLC.</strong></p>
+
+<h2>7. No Financial or Investment Advice</h2>
+<p>Nothing in the Service constitutes financial, investment, tax, legal, or other professional advice. BOTCOIN tokens may have no value. Past mining performance is not indicative of future results. You should consult qualified professionals before making any financial decisions. We make no representations regarding the value, utility, or future prospects of BOTCOIN or any other cryptocurrency.</p>
+
+<h2>8. Indemnification</h2>
+<p>You agree to indemnify, defend, and hold harmless Question Labs LLC, its officers, directors, employees, agents, and affiliates from and against any and all claims, damages, losses, liabilities, costs, and expenses (including reasonable attorneys' fees) arising out of or in connection with: (a) your use of the Service; (b) your violation of these Terms; (c) your violation of any applicable law or regulation; or (d) your violation of any third party's rights.</p>
+
+<h2>9. Service Availability</h2>
+<p>We do not guarantee that the Service will be available at all times or without interruption. The Service may experience downtime, maintenance periods, bugs, errors, or complete unavailability without notice. We reserve the right to modify, suspend, or discontinue the Service (or any part thereof) at any time, temporarily or permanently, with or without notice, and without liability to you.</p>
+
+<h2>10. Third-Party Services</h2>
+<p>The Service integrates with Bankr Bot and other third-party services. Your use of these third-party services is governed by their respective terms of service and privacy policies. Question Labs LLC is not responsible for the availability, accuracy, security, or content of any third-party service. We do not endorse and are not responsible or liable for any third-party services.</p>
+
+<h2>11. Intellectual Property</h2>
+<p>The Service and its original content, features, and functionality are owned by Question Labs LLC and are protected by copyright, trademark, and other intellectual property laws. You are granted a limited, non-exclusive, non-transferable, revocable license to use the Service for personal, non-commercial purposes in accordance with these Terms.</p>
+
+<h2>12. Termination</h2>
+<p>We may terminate or suspend your access to the Service immediately, without prior notice or liability, for any reason, including if you breach these Terms. Upon termination, your right to use the Service ceases immediately. All provisions of these Terms that by their nature should survive termination shall survive.</p>
+
+<h2>13. Governing Law and Dispute Resolution</h2>
+<p>These Terms shall be governed by and construed in accordance with the laws of the State of Delaware, United States, without regard to its conflict of law provisions. Any dispute arising out of or relating to these Terms or the Service shall be resolved exclusively in the state or federal courts located in Delaware, and you consent to personal jurisdiction in such courts.</p>
+
+<h2>14. Severability</h2>
+<p>If any provision of these Terms is held to be invalid, illegal, or unenforceable, the remaining provisions shall continue in full force and effect.</p>
+
+<h2>15. Entire Agreement</h2>
+<p>These Terms, together with the Privacy Policy, constitute the entire agreement between you and Question Labs LLC regarding the Service and supersede all prior agreements and understandings.</p>
+
+<h2>16. Changes to Terms</h2>
+<p>We reserve the right to modify these Terms at any time. Changes become effective upon posting. Your continued use of the Service after changes are posted constitutes acceptance of the modified Terms. It is your responsibility to review these Terms periodically.</p>
+
+<h2>17. Contact</h2>
+<p>For questions about these Terms, contact Question Labs LLC at the information provided on <a href="https://agentmoney.net/" target="_blank">agentmoney.net</a>.</p>
+</div>
+</body></html>"""
+
+PRIVACY_HTML = """<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Privacy Policy — BOTCOIN Miner</title>
+<style>
+""" + SHARED_CSS + LEGAL_CSS + """
+</style></head><body>
+<div class="legal">
+<a href="/" class="back">&larr; Back</a>
+<h1>Privacy Policy</h1>
+<p class="updated">Last updated: March 10, 2026</p>
+
+<h2>1. Introduction</h2>
+<p>This Privacy Policy describes how <strong>Question Labs LLC</strong> ("Company," "we," "us") collects, uses, and protects information in connection with the BOTCOIN Miner software and related services (the "Service"). The Service uses <strong>Bankr Bot</strong> as a third-party service provider for wallet management, authentication, and LLM gateway access.</p>
+
+<h2>2. Information We Collect</h2>
+<p><strong>Information you provide:</strong></p>
+<ul>
+<li><strong>Email address:</strong> Used solely for authentication via Bankr Bot's OTP (one-time password) system. We pass your email to Bankr Bot to initiate the login flow.</li>
+<li><strong>API key:</strong> Your Bankr API key is encrypted in memory using AES-128-CBC with HMAC-SHA256 (Fernet encryption) and stored only in server-side sessions. The encryption key is ephemeral (regenerated on each server restart). API keys are never written to disk, logged, or exposed in API responses.</li>
+</ul>
+<p><strong>Information collected automatically:</strong></p>
+<ul>
+<li><strong>IP address:</strong> Used solely for rate limiting on authentication endpoints. Not stored persistently.</li>
+<li><strong>Blockchain addresses:</strong> Your public wallet address on Base, as resolved from your Bankr account. This is a public blockchain address and is used to interact with mining contracts.</li>
+<li><strong>Mining activity:</strong> Challenge results (pass/fail counts, credits earned) are stored in server memory during your session for dashboard display. This data is not persisted to disk and is lost on server restart.</li>
+</ul>
+<p><strong>Information we do NOT collect:</strong></p>
+<ul>
+<li>We do not use cookies for tracking or advertising.</li>
+<li>We do not use analytics services, tracking pixels, or advertising networks.</li>
+<li>We do not collect browser fingerprints or device identifiers.</li>
+<li>We do not sell, rent, or share your personal information with third parties for marketing purposes.</li>
+</ul>
+
+<h2>3. How We Use Information</h2>
+<p>We use the information we collect solely for the following purposes:</p>
+<ul>
+<li>Authenticating your identity via Bankr Bot</li>
+<li>Managing your encrypted session</li>
+<li>Executing mining operations on your behalf (requesting challenges, submitting solutions, posting receipts)</li>
+<li>Displaying mining statistics and wallet balances on your dashboard</li>
+<li>Rate limiting to prevent abuse</li>
+</ul>
+
+<h2>4. Data Storage and Security</h2>
+<ul>
+<li><strong>Sessions:</strong> All session data (including encrypted API keys) is stored in server memory only. Sessions expire after 24 hours and are limited to 50 concurrent sessions. All sessions are invalidated on server restart.</li>
+<li><strong>Encryption:</strong> API keys are encrypted at rest using Fernet symmetric encryption (AES-128-CBC + HMAC-SHA256) with an ephemeral key generated at server startup.</li>
+<li><strong>Cookies:</strong> We use a single HttpOnly, SameSite=Strict session cookie for authentication. No tracking cookies are used.</li>
+<li><strong>CSRF protection:</strong> All state-changing operations are protected with CSRF tokens.</li>
+<li><strong>No persistent storage:</strong> We do not operate a database. No user data is written to disk or persisted beyond the server process lifetime.</li>
+</ul>
+
+<h2>5. Third-Party Services</h2>
+<p>The Service integrates with the following third-party services, each governed by their own privacy policies:</p>
+<ul>
+<li><strong>Bankr Bot</strong> (<a href="https://bankr.bot/" target="_blank">bankr.bot</a>) — Wallet management, authentication, transaction execution, LLM gateway. Your email and API key are processed by Bankr Bot.</li>
+<li><strong>LLM providers</strong> (Anthropic, OpenAI, Google, etc. via Bankr LLM Gateway) — Mining challenge text is sent to LLM providers for solving. These providers have their own data handling policies.</li>
+<li><strong>Base blockchain</strong> — Transaction data, wallet addresses, and smart contract interactions are recorded on the public Base blockchain permanently.</li>
+<li><strong>Google Fonts</strong> — Font files are loaded from Google's CDN. Google may collect standard web request data (IP address, user agent).</li>
+</ul>
+
+<h2>6. Blockchain Data</h2>
+<p>Blockchain transactions are public and immutable. Once a transaction is posted to the Base network (including mining receipts, staking, and claims), it becomes permanently and publicly visible. Question Labs LLC has no ability to delete, modify, or restrict access to blockchain data.</p>
+
+<h2>7. Data Retention</h2>
+<p>Session data is retained in memory for a maximum of 24 hours or until server restart, whichever comes first. We do not maintain any persistent database of user information. Rate limiting counters are stored in memory and reset on server restart.</p>
+
+<h2>8. Your Rights</h2>
+<p>Since we do not persistently store personal data, most data subject rights (access, correction, deletion) are satisfied by the ephemeral nature of our data handling. You can terminate your session at any time by logging out, which destroys your encrypted session data immediately. If you have questions about your data, contact us at the information provided on <a href="https://agentmoney.net/" target="_blank">agentmoney.net</a>.</p>
+
+<h2>9. Children's Privacy</h2>
+<p>The Service is not directed to individuals under the age of 18. We do not knowingly collect personal information from children. If we learn that we have collected personal information from a child under 18, we will take steps to delete that information promptly.</p>
+
+<h2>10. International Users</h2>
+<p>The Service is operated from the United States. If you access the Service from outside the United States, you understand and consent to the transfer and processing of your information in the United States, which may have different data protection laws than your jurisdiction.</p>
+
+<h2>11. Changes to This Policy</h2>
+<p>We may update this Privacy Policy from time to time. Changes become effective upon posting. Your continued use of the Service after changes are posted constitutes acceptance of the updated Privacy Policy.</p>
+
+<h2>12. Contact</h2>
+<p>For questions about this Privacy Policy, contact Question Labs LLC at the information provided on <a href="https://agentmoney.net/" target="_blank">agentmoney.net</a>.</p>
+</div>
+</body></html>"""
+
+# ---------------------------------------------------------------------------
 # Landing page
 # ---------------------------------------------------------------------------
 LANDING_HTML = """<!DOCTYPE html>
@@ -128,6 +306,11 @@ LANDING_HTML = """<!DOCTYPE html>
     <div class="feature f1"><div class="icon">&#9889;</div><h3>AI-Powered Solving</h3><p>Multi-model LLM solver tackles hybrid NLP challenges automatically. Choose Claude, GPT, or Gemini.</p></div>
     <div class="feature f2"><div class="icon">&#128274;</div><h3>Non-Custodial</h3><p>Your keys never leave <a href="https://bankr.bot/" target="_blank">Bankr</a>. All transactions require your approval. Fully transparent on-chain.</p></div>
     <div class="feature f3"><div class="icon">&#128200;</div><h3>Real-Time Dashboard</h3><p>Live stats, staking management, pending transactions, and LLM output &mdash; all in your browser.</p></div>
+  </div>
+  <div style="padding:20px 24px 40px;font-size:12px;color:var(--muted);text-align:center;width:100%">
+    &copy; 2026 Question Labs LLC &mdash;
+    <a href="/terms" style="color:var(--dim)">Terms of Service</a> &middot;
+    <a href="/privacy" style="color:var(--dim)">Privacy Policy</a>
   </div>
 </div>
 </body></html>"""
@@ -177,7 +360,7 @@ input:focus,select:focus{border-color:var(--accent)}
 </style></head><body>
 <div class="container">
 <div class="logo"><span class="grad-text">BOTCOIN</span> MINER</div>
-<p class="subtitle">Plug & Play Mining Agent</p>
+<p class="subtitle">Botcoin Setup Wizard</p>
 <div class="progress" id="progress"></div>
 
 <!-- Step 1: Connect -->
@@ -196,34 +379,65 @@ input:focus,select:focus{border-color:var(--accent)}
         <input type="text" id="otpInput" placeholder="123456" maxlength="8">
         <button class="btn btn-green btn-sm" onclick="verifyOtp()">Verify</button>
       </div>
-      <p class="terms">By verifying you accept the <a href="https://bankr.bot/terms" target="_blank">Terms of Service</a></p>
+      <p class="terms">By verifying you accept our <a href="/terms" target="_blank">Terms of Service</a> and <a href="/privacy" target="_blank">Privacy Policy</a></p>
     </div>
     <div id="step1Status"></div>
   </div>
 </div>
 
-<!-- Step 2: Wallet -->
+<!-- Step 2: Configure Bankr Account -->
 <div class="step" id="step2">
-  <div class="step-header"><span class="step-num">2</span><span class="step-title">Wallet & Balances</span></div>
+  <div class="step-header"><span class="step-num">2</span><span class="step-title">Configure Bankr Account</span></div>
+  <p class="step-desc">First-time users: enable these settings at <a href="https://bankr.bot/api" target="_blank">bankr.bot/api</a> so mining works correctly.</p>
+  <div class="step-body">
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div class="checklist-item" style="display:flex;align-items:flex-start;gap:10px;padding:12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg)">
+        <input type="checkbox" id="chkAgentApi" style="width:18px;height:18px;accent-color:var(--green);margin-top:2px;flex-shrink:0">
+        <div><div style="font-size:14px;font-weight:600">Enable Agent API</div><div style="font-size:12px;color:var(--dim);margin-top:2px">Required for wallet operations, signing, and submitting transactions.</div></div>
+      </div>
+      <div class="checklist-item" style="display:flex;align-items:flex-start;gap:10px;padding:12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg)">
+        <input type="checkbox" id="chkReadWrite" style="width:18px;height:18px;accent-color:var(--green);margin-top:2px;flex-shrink:0">
+        <div><div style="font-size:14px;font-weight:600">Turn OFF Read-Only Mode</div><div style="font-size:12px;color:var(--dim);margin-top:2px">Mining requires submitting transactions. Read-only keys will be rejected.</div></div>
+      </div>
+      <div class="checklist-item" style="display:flex;align-items:flex-start;gap:10px;padding:12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg)">
+        <input type="checkbox" id="chkLlmGateway" style="width:18px;height:18px;accent-color:var(--green);margin-top:2px;flex-shrink:0">
+        <div><div style="font-size:14px;font-weight:600">Enable LLM Gateway</div><div style="font-size:12px;color:var(--dim);margin-top:2px">Powers AI inference for solving mining challenges.</div></div>
+      </div>
+    </div>
+    <div style="margin-top:14px;padding:10px 14px;border-radius:var(--radius-sm);background:rgba(0,212,255,0.06);border:1px solid rgba(0,212,255,0.1);font-size:12px;color:var(--accent)">
+      Open <a href="https://bankr.bot/api" target="_blank" style="color:var(--accent);font-weight:600">bankr.bot/api</a>, select your API key, and toggle these settings on. Check the boxes above once done.
+    </div>
+    <div id="step2Status"></div>
+    <div style="display:flex;gap:8px;margin-top:14px">
+      <button class="btn btn-ghost btn-sm" onclick="goStep(1)">Back</button>
+      <button class="btn btn-accent btn-sm" id="btnStep2Next" onclick="confirmBankrConfig()">Continue</button>
+    </div>
+  </div>
+</div>
+
+<!-- Step 3: Wallet -->
+<div class="step" id="step3">
+  <div class="step-header"><span class="step-num">3</span><span class="step-title">Wallet & Balances</span></div>
   <p class="step-desc">Your non-custodial wallet on Base. You need ETH for gas and BOTCOIN for staking.</p>
   <div class="step-body">
     <div class="info-box"><div class="lbl">Wallet Address</div><div class="val" id="walletAddr" style="font-size:13px;font-family:var(--mono)">—</div></div>
     <div style="display:flex;gap:10px">
       <div class="info-box" style="flex:1"><div class="lbl">ETH</div><div class="val" id="ethBal">—</div></div>
-      <div class="info-box" style="flex:1"><div class="lbl">BOTCOIN</div><div class="val" id="botBal">—</div></div>
+      <div class="info-box" style="flex:1"><div class="lbl">BOTCOIN (wallet)</div><div class="val" id="botBal">—</div></div>
+      <div class="info-box" style="flex:1"><div class="lbl">BOTCOIN (staked)</div><div class="val" id="botStaked" style="color:var(--green)">—</div></div>
     </div>
-    <div id="step2Status"></div>
+    <div id="step3Status"></div>
     <div id="fundingActions" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"></div>
     <div style="display:flex;gap:8px;margin-top:14px">
-      <button class="btn btn-ghost btn-sm" onclick="goStep(1)">Back</button>
-      <button class="btn btn-accent btn-sm" id="btnStep2Next" onclick="goStep(3)">Continue</button>
+      <button class="btn btn-ghost btn-sm" onclick="goStep(2)">Back</button>
+      <button class="btn btn-accent btn-sm" id="btnStep3Next" onclick="goStep(4)">Continue</button>
     </div>
   </div>
 </div>
 
-<!-- Step 3: Stake -->
-<div class="step" id="step3">
-  <div class="step-header"><span class="step-num">3</span><span class="step-title">Stake BOTCOIN</span></div>
+<!-- Step 4: Stake -->
+<div class="step" id="step4">
+  <div class="step-header"><span class="step-num">4</span><span class="step-title">Stake BOTCOIN</span></div>
   <p class="step-desc">Stake to earn credits. Higher stake = more credits per solve.</p>
   <div class="step-body">
     <div class="tier-cards">
@@ -231,17 +445,17 @@ input:focus,select:focus{border-color:var(--accent)}
       <div class="tier-card t2" onclick="doStake('50000000000000000000000000')"><div class="amt">50M</div><div class="cr">2 credits/solve</div></div>
       <div class="tier-card t3" onclick="doStake('100000000000000000000000000')"><div class="amt">100M</div><div class="cr">3 credits/solve</div></div>
     </div>
-    <div id="step3Status"></div>
+    <div id="step4Status"></div>
     <div style="display:flex;gap:8px;margin-top:14px">
-      <button class="btn btn-ghost btn-sm" onclick="goStep(2)">Back</button>
-      <button class="btn btn-accent btn-sm" onclick="goStep(4)">Continue / Skip</button>
+      <button class="btn btn-ghost btn-sm" onclick="goStep(3)">Back</button>
+      <button class="btn btn-accent btn-sm" onclick="goStep(5)">Continue / Skip</button>
     </div>
   </div>
 </div>
 
-<!-- Step 4: LLM -->
-<div class="step" id="step4">
-  <div class="step-header"><span class="step-num">4</span><span class="step-title">LLM Configuration</span></div>
+<!-- Step 5: LLM -->
+<div class="step" id="step5">
+  <div class="step-header"><span class="step-num">5</span><span class="step-title">LLM Configuration</span></div>
   <p class="step-desc">Pick your solver model. LLM credits power inference — you need credits to mine.</p>
   <div class="step-body">
     <label>Model</label>
@@ -258,16 +472,16 @@ input:focus,select:focus{border-color:var(--accent)}
         Enable auto top-up ($25 USDC when credits &lt; $5)
       </label>
     </div>
-    <div id="step4Status"></div>
+    <div id="step5Status"></div>
     <div style="display:flex;gap:8px;margin-top:16px">
-      <button class="btn btn-ghost btn-sm" onclick="goStep(3)">Back</button>
+      <button class="btn btn-ghost btn-sm" onclick="goStep(4)">Back</button>
       <button class="btn btn-green" onclick="finishSetup()" style="flex:1">Start Mining</button>
     </div>
   </div>
 </div>
 
-<!-- Step 5: Done -->
-<div class="step" id="step5">
+<!-- Step 6: Done -->
+<div class="step" id="step6">
   <div class="step-header"><span class="step-check">&#10003;</span><span class="step-title">Setup Complete</span></div>
   <div class="status ok" style="margin:16px 0 0 38px">Mining is starting. Redirecting to dashboard...</div>
 </div>
@@ -277,10 +491,11 @@ let CSRF=document.querySelector('meta[name=csrf-token]').content;
 function updateCSRF(token){if(token){CSRF=token;document.querySelector('meta[name=csrf-token]').content=token}}
 function H(method,body){return{method,headers:{'Content-Type':'application/json','X-CSRF-Token':CSRF},body:body?JSON.stringify(body):undefined}}
 let currentStep=1;
-function updateProgress(){const p=document.getElementById('progress');p.innerHTML='';for(let i=1;i<=4;i++){const cls=i<currentStep?'seg done':i===currentStep?'seg active':'seg';p.innerHTML+='<div class="'+cls+'"></div>'}}
+function updateProgress(){const p=document.getElementById('progress');p.innerHTML='';for(let i=1;i<=5;i++){const cls=i<currentStep?'seg done':i===currentStep?'seg active':'seg';p.innerHTML+='<div class="'+cls+'"></div>'}}
 updateProgress();
 function showStatus(elId,cls,msg){document.getElementById(elId).innerHTML='<div class="status '+cls+'">'+msg+'</div>'}
-function goStep(n){document.getElementById('step'+currentStep).classList.remove('active');currentStep=n;document.getElementById('step'+n).classList.add('active');updateProgress();if(n===2)loadWallet();if(n===3)checkStake();if(n===4)loadLLMCredits()}
+function goStep(n){document.getElementById('step'+currentStep).classList.remove('active');currentStep=n;document.getElementById('step'+n).classList.add('active');updateProgress();if(n===3)loadWallet();if(n===4)checkStake();if(n===5)loadLLMCredits()}
+function confirmBankrConfig(){const a=document.getElementById('chkAgentApi').checked,rw=document.getElementById('chkReadWrite').checked,llm=document.getElementById('chkLlmGateway').checked;if(!a||!rw||!llm){showStatus('step2Status','warn','Please confirm all settings are enabled before continuing.');return}showStatus('step2Status','');goStep(3)}
 
 async function sendOtp(){
   const email=document.getElementById('emailInput').value.trim();
@@ -299,32 +514,39 @@ async function verifyOtp(){
   const r=await fetch('/api/setup/verify-otp',H('POST',{email,code}));
   const d=await r.json();
   if(d.ok){updateCSRF(d.csrf_token);showStatus('step1Status','ok','Account created!');setTimeout(()=>goStep(2),500)}
+  else if(d.setup_guide){document.getElementById('step1Status').innerHTML='<div class="status ok" style="margin-bottom:8px">Account verified!</div><div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;font-size:13px"><div style="font-weight:600;margin-bottom:10px">Complete these steps to finish setup:</div><ol style="margin:0;padding-left:20px;line-height:2;color:var(--text)"><li>Go to <a href="https://bankr.bot/api" target="_blank" style="color:var(--accent);font-weight:600">bankr.bot/api</a></li><li>Log in with this same email</li><li>Click <strong>Create API Key</strong></li><li>Enable <strong>Agent API</strong> and <strong>LLM Gateway</strong></li><li>Toggle <strong>Read-Only</strong> off</li><li>Come back here and log in again</li></ol></div>'}
   else showStatus('step1Status','err',d.error||'Failed')
 }
 async function loadWallet(){
-  showStatus('step2Status','info','<span class="spinner"></span> Loading...');
-  const r=await fetch('/api/setup/wallet');const d=await r.json();
+  showStatus('step3Status','info','<span class="spinner"></span> Loading...');
+  const r=await fetch('/api/setup/wallet');
+  const d=await r.json();
   document.getElementById('walletAddr').textContent=d.address||'—';
-  document.getElementById('ethBal').textContent=d.eth!==undefined?parseFloat(d.eth).toFixed(6)+' ETH':'—';
-  document.getElementById('botBal').textContent=d.botcoin!==undefined?Number(d.botcoin).toLocaleString()+' BOTCOIN':'—';
+  document.getElementById('ethBal').textContent=d.eth!==undefined?parseFloat(d.eth).toFixed(4)+' ETH':'—';
+  document.getElementById('botBal').textContent=d.botcoin!==undefined?Number(d.botcoin).toLocaleString():'—';
+  const sr=await fetch('/api/setup/check-stake');
+  const sd=await sr.json();
+  const staked=sd.staked||0;
+  document.getElementById('botStaked').textContent=staked>0?Number(staked).toLocaleString():'0';
+  const totalBot=(d.botcoin||0)+staked;
   const a=document.getElementById('fundingActions');a.innerHTML='';
   if(d.eth<0.001)a.innerHTML+='<a href="https://app.across.to/bridge-and-swap" target="_blank" class="btn btn-ghost btn-sm">Bridge ETH</a>';
-  if(d.botcoin<25000000)a.innerHTML+='<a href="https://app.uniswap.org/swap?outputCurrency=0xA601877977340862Ca67f816eb079958E5bd0BA3&chain=base" target="_blank" class="btn btn-ghost btn-sm">Buy BOTCOIN</a>';
-  if(d.eth<0.001||d.botcoin<25000000){a.innerHTML+='<button class="btn btn-ghost btn-sm" onclick="loadWallet()">Refresh</button>';showStatus('step2Status','warn','Need ETH for gas and 25M+ BOTCOIN to mine.')}
-  else showStatus('step2Status','ok','Balances look good!')
+  if(totalBot<25000000)a.innerHTML+='<a href="https://app.uniswap.org/swap?outputCurrency=0xA601877977340862Ca67f816eb079958E5bd0BA3&chain=base" target="_blank" class="btn btn-ghost btn-sm">Buy BOTCOIN</a>';
+  if(d.eth<0.001||totalBot<25000000){a.innerHTML+='<button class="btn btn-ghost btn-sm" onclick="loadWallet()">Refresh</button>';showStatus('step3Status','warn','Need ETH for gas and 25M+ BOTCOIN to mine.')}
+  else showStatus('step3Status','ok','Balances look good!')
 }
 async function checkStake(){
-  showStatus('step3Status','info','<span class="spinner"></span> Checking stake...');
+  showStatus('step4Status','info','<span class="spinner"></span> Checking stake...');
   try{const r=await fetch('/api/setup/check-stake');const d=await r.json();
-    if(d.staked>0){const tier=d.staked>=100000000?'3cr/solve':d.staked>=50000000?'2cr/solve':'1cr/solve';showStatus('step3Status','ok','Staked: '+Number(d.staked).toLocaleString(undefined,{maximumFractionDigits:0})+' BOTCOIN ('+tier+')')}
-    else showStatus('step3Status','info','Not staked yet. Pick a tier above or skip for now.')
-  }catch(e){showStatus('step3Status','info','Pick a tier to stake, or skip.')}
+    if(d.staked>0){const tier=d.staked>=100000000?'3cr/solve':d.staked>=50000000?'2cr/solve':'1cr/solve';showStatus('step4Status','ok','Staked: '+Number(d.staked).toLocaleString(undefined,{maximumFractionDigits:0})+' BOTCOIN ('+tier+')')}
+    else showStatus('step4Status','info','Not staked yet. Pick a tier above or skip for now.')
+  }catch(e){showStatus('step4Status','info','Pick a tier to stake, or skip.')}
 }
 async function doStake(amount){
-  showStatus('step3Status','info','<span class="spinner"></span> Staking (2 transactions)...');
+  showStatus('step4Status','info','<span class="spinner"></span> Staking (2 transactions)...');
   const r=await fetch('/api/setup/stake',H('POST',{amount}));
   const d=await r.json();
-  showStatus('step3Status',d.ok?'ok':'err',d.message||'Done')
+  showStatus('step4Status',d.ok?'ok':'err',d.message||'Done')
 }
 async function loadLLMCredits(){
   const r=await fetch('/api/setup/llm-credits');const d=await r.json();
@@ -334,11 +556,11 @@ async function loadLLMCredits(){
 }
 async function finishSetup(){
   const model=document.getElementById('modelSetupSelect').value,autoTopup=document.getElementById('autoTopupCheck').checked;
-  showStatus('step4Status','info','<span class="spinner"></span> Starting...');
+  showStatus('step5Status','info','<span class="spinner"></span> Starting...');
   const r=await fetch('/api/setup/finish',H('POST',{model,auto_topup:autoTopup}));
   const d=await r.json();
-  if(d.ok){goStep(5);setTimeout(()=>{window.location.href='/dashboard'},2000)}
-  else showStatus('step4Status','err',d.error||'Failed')
+  if(d.ok){goStep(6);setTimeout(()=>{window.location.href='/dashboard'},2000)}
+  else showStatus('step5Status','err',d.error||'Failed')
 }
 </script></body></html>"""
 
@@ -359,10 +581,13 @@ DASHBOARD_HTML = r"""<!DOCTYPE html>
 .phase .dot{width:6px;height:6px;border-radius:50%;background:currentColor;animation:pulse 1.5s infinite}
 .controls{display:flex;align-items:center;gap:8px}
 .controls select{padding:6px 10px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:12px;font-family:var(--font)}
-.wallet-tag{font-size:11px;color:var(--dim);font-family:var(--mono)}
-.grid{display:grid;grid-template-columns:300px 1fr 1fr;grid-template-rows:1fr 260px;gap:14px;padding:14px 24px;height:calc(100vh - 58px)}
+.wallet-tag{font-size:11px;color:var(--dim);font-family:var(--mono);cursor:pointer;position:relative}
+.wallet-tag:hover{color:var(--accent)}
+.copy-tip{position:absolute;top:-26px;left:50%;transform:translateX(-50%);background:var(--green);color:#000;font-size:10px;padding:2px 8px;border-radius:4px;white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .2s}
+.copy-tip.show{opacity:1}
+.grid{display:grid;grid-template-columns:300px 1fr 1fr;grid-template-rows:auto 1fr 1fr 240px;gap:14px;padding:14px 24px;height:calc(100vh - 58px)}
 /* Staking panel */
-.stake-panel{grid-row:1/3;display:flex;flex-direction:column;gap:14px;overflow-y:auto}
+.stake-panel{grid-row:1/5;display:flex;flex-direction:column;gap:14px;overflow-y:auto}
 .staked-display{text-align:center;padding:24px 16px}
 .staked-amt{font-size:36px;font-weight:700;line-height:1.2}
 .staked-label{font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:1px;margin-top:2px}
@@ -392,9 +617,22 @@ DASHBOARD_HTML = r"""<!DOCTYPE html>
 .tx-confirmed .tx-icon{background:rgba(0,230,118,0.12);color:var(--green)}
 .tx-failed .tx-icon{background:rgba(255,71,87,0.12);color:var(--red)}
 .tx-desc{flex:1;color:var(--text)}.tx-time{color:var(--muted);font-size:11px}
+/* Challenge panel */
+.challenge-panel{display:flex;flex-direction:column;overflow:hidden}
+.challenge-content{flex:1;overflow-y:auto;padding:10px;background:var(--bg);border-radius:var(--radius-sm);font-size:12px}
+.challenge-content .q-item{padding:6px 0;border-bottom:1px solid var(--border)}
+.challenge-content .q-label{font-size:10px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.5px}
+.challenge-content .q-text{color:var(--text);margin-top:2px}
+.constraint-item{padding:4px 0;font-size:11px;color:var(--dim);display:flex;gap:6px;align-items:flex-start}
+.constraint-idx{color:var(--accent);font-weight:700;flex-shrink:0;font-size:10px;min-width:20px}
+.constraint-fail{color:var(--red)}.constraint-pass{color:var(--green)}
+.doc-preview{font-size:11px;color:var(--muted);font-style:italic;padding:8px 0;border-bottom:1px solid var(--border);margin-bottom:6px;line-height:1.5}
 /* LLM panel */
-.llm-panel{display:flex;flex-direction:column}
+.llm-panel{display:flex;flex-direction:column;grid-column:2/4}
 .llm-content{flex:1;overflow-y:auto;font-family:var(--mono);font-size:11px;white-space:pre-wrap;word-break:break-word;color:var(--dim);padding:10px;background:var(--bg);border-radius:var(--radius-sm)}
+.result-badge{display:inline-flex;align-items:center;gap:5px;padding:4px 12px;border-radius:12px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+.result-badge.pass{background:rgba(0,230,118,0.12);color:var(--green)}.result-badge.fail{background:rgba(255,71,87,0.12);color:var(--red)}
+.artifact-box{padding:10px;margin-top:8px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--bg);font-family:var(--mono);font-size:11px;word-break:break-word;color:var(--text);line-height:1.6}
 /* Log */
 .log-panel{grid-column:2/4}
 .log-content{flex:1;overflow-y:auto;font-family:var(--mono);font-size:11px;line-height:1.8;padding:10px;background:var(--bg);border-radius:var(--radius-sm)}
@@ -404,18 +642,19 @@ DASHBOARD_HTML = r"""<!DOCTYPE html>
 .toast{padding:12px 18px;border-radius:var(--radius-sm);font-size:13px;font-weight:500;animation:slideIn .3s ease-out;min-width:260px;box-shadow:0 8px 30px rgba(0,0,0,.4)}
 .toast-ok{background:rgba(0,230,118,0.15);color:var(--green);border:1px solid rgba(0,230,118,0.2)}
 .toast-err{background:rgba(255,71,87,0.15);color:var(--red);border:1px solid rgba(255,71,87,0.2)}
-@media(max-width:900px){.grid{grid-template-columns:1fr;grid-template-rows:auto auto auto 260px}.stake-panel{grid-row:auto}.log-panel{grid-column:auto}}
+@media(max-width:900px){.grid{grid-template-columns:1fr;grid-template-rows:auto auto auto auto auto auto 260px}.stake-panel{grid-row:auto}.log-panel{grid-column:auto}.challenge-panel{grid-column:auto}.llm-panel{grid-column:auto}}
 </style></head><body>
 <div class="header">
   <div class="header-left">
     <div class="logo"><span class="grad-text">BOTCOIN</span> MINER</div>
     <span class="phase" id="phaseBadge"><span class="dot"></span> INIT</span>
-    <span class="wallet-tag" id="walletInfo"></span>
+    <span class="wallet-tag" id="walletInfo" onclick="copyWallet()" title="Click to copy full address"><span class="copy-tip" id="copyTip">Copied!</span></span>
   </div>
   <div class="controls">
     <select id="modelSelect" title="LLM Model">MODELOPTIONS</select>
     <button class="btn btn-green btn-sm" id="btnStart">Start</button>
     <button class="btn btn-red btn-sm" id="btnStop">Stop</button>
+    <a href="/setup" class="btn btn-ghost btn-sm" style="text-decoration:none">Setup</a>
     <button class="btn btn-ghost btn-sm" onclick="doLogout()">Logout</button>
   </div>
 </div>
@@ -449,11 +688,48 @@ DASHBOARD_HTML = r"""<!DOCTYPE html>
           <a href="https://app.across.to/bridge-and-swap" target="_blank" class="btn btn-ghost btn-sm" style="flex:1;text-decoration:none">Bridge ETH</a>
         </div>
         <div style="display:flex;gap:6px">
-          <button class="btn btn-yellow btn-sm" style="flex:1" onclick="dashUnstake()">Unstake</button>
-          <button class="btn btn-ghost btn-sm" style="flex:1" id="btnWithdraw" onclick="dashWithdraw()" disabled>Withdraw</button>
+          <button class="btn btn-yellow btn-sm" style="flex:1" onclick="showUnstakeUI()">Unstake</button>
+        </div>
+        <div id="unstakeUI" style="display:none;margin-top:8px;padding:12px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm)">
+          <label style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--dim);margin-bottom:4px;display:block">Unstake Amount (BOTCOIN)</label>
+          <input type="text" id="unstakeAmt" placeholder="0" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-card);color:var(--text);font-size:14px;font-family:var(--mono);margin-bottom:6px">
+          <div style="display:flex;gap:4px;margin-bottom:8px">
+            <button class="btn btn-ghost btn-sm" style="flex:1;padding:4px" onclick="setUnstakePct(25)">25%</button>
+            <button class="btn btn-ghost btn-sm" style="flex:1;padding:4px" onclick="setUnstakePct(50)">50%</button>
+            <button class="btn btn-ghost btn-sm" style="flex:1;padding:4px" onclick="setUnstakePct(75)">75%</button>
+            <button class="btn btn-accent btn-sm" style="flex:1;padding:4px" onclick="setUnstakePct(100)">Max</button>
+          </div>
+          <div style="display:flex;gap:6px">
+            <button class="btn btn-yellow btn-sm" style="flex:1" onclick="dashUnstake()">Confirm Unstake</button>
+            <button class="btn btn-ghost btn-sm" onclick="document.getElementById('unstakeUI').style.display='none'">Cancel</button>
+          </div>
+        </div>
+        <div style="display:flex;gap:6px;margin-top:6px">
+          <button class="btn btn-ghost btn-sm" style="flex:1" onclick="showSendReceive('receive')">Receive</button>
+          <button class="btn btn-ghost btn-sm" style="flex:1" onclick="showSendReceive('send')">Send</button>
         </div>
       </div>
       <div id="stakeStatus" style="font-size:12px;margin-top:8px"></div>
+      <!-- Send/Receive Panel -->
+      <div id="sendReceivePanel" style="display:none;margin-top:12px;padding:14px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm)">
+        <div id="receivePanel" style="display:none">
+          <div style="font-size:12px;font-weight:600;margin-bottom:8px">Receive BOTCOIN</div>
+          <div style="font-size:11px;color:var(--dim);margin-bottom:8px">Send BOTCOIN to this address on the <strong style="color:var(--accent)">Base</strong> network only.</div>
+          <div style="padding:10px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-sm);font-family:var(--mono);font-size:11px;word-break:break-all;color:var(--text)" id="receiveAddr">—</div>
+          <button class="btn btn-accent btn-sm" style="width:100%;margin-top:8px" onclick="copyReceiveAddr()">Copy Address</button>
+          <div id="receiveCopyTip" style="text-align:center;font-size:11px;color:var(--green);margin-top:4px;display:none">Copied!</div>
+        </div>
+        <div id="sendPanel" style="display:none">
+          <div style="font-size:12px;font-weight:600;margin-bottom:4px">Send BOTCOIN</div>
+          <div style="font-size:11px;color:var(--dim);margin-bottom:8px">Available: <strong style="color:var(--text)" id="sendBalance">--</strong> BOTCOIN</div>
+          <label style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--dim);margin-bottom:4px;display:block">Recipient Address</label>
+          <input type="text" id="sendAddr" placeholder="0x..." style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-card);color:var(--text);font-size:12px;font-family:var(--mono);margin-bottom:8px">
+          <label style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--dim);margin-bottom:4px;display:block">Amount (BOTCOIN)</label>
+          <input type="text" id="sendAmt" placeholder="0" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-card);color:var(--text);font-size:14px;font-family:var(--mono);margin-bottom:8px">
+          <button class="btn btn-accent btn-sm" style="width:100%" onclick="dashSend()">Send</button>
+        </div>
+        <button class="btn btn-ghost btn-sm" style="width:100%;margin-top:8px" onclick="document.getElementById('sendReceivePanel').style.display='none'">Close</button>
+      </div>
     </div>
   </div>
 
@@ -468,6 +744,7 @@ DASHBOARD_HTML = r"""<!DOCTYPE html>
         <div class="stat"><div class="stat-label">Epoch</div><div class="stat-value" id="sEpoch">--</div></div>
         <div class="stat"><div class="stat-label">Uptime</div><div class="stat-value" id="sUptime" style="font-size:16px">0h 0m</div></div>
         <div class="stat"><div class="stat-label">LLM Credits <a href="https://bankr.bot/llm?tab=credits" target="_blank" style="font-size:9px">&#8599;</a></div><div class="stat-value yellow" id="sLLM">--</div></div>
+        <div class="stat"><div class="stat-label">ETH (gas) <a href="https://app.across.to/bridge-and-swap" target="_blank" style="font-size:9px">&#8599;</a></div><div class="stat-value" id="sEth" style="font-size:16px">--</div></div>
       </div>
     </div>
     <div class="card" style="flex:1;display:flex;flex-direction:column;overflow:hidden">
@@ -476,10 +753,21 @@ DASHBOARD_HTML = r"""<!DOCTYPE html>
     </div>
   </div>
 
-  <!-- Right: LLM Output -->
+  <!-- Right: Challenge Details -->
+  <div class="card challenge-panel">
+    <div class="card-title">Challenge</div>
+    <div class="challenge-content" id="challengeContent"><div style="color:var(--muted);font-size:12px">Waiting for challenge...</div></div>
+  </div>
+
+  <!-- LLM Output + Result -->
   <div class="card llm-panel">
-    <div class="card-title">LLM Output</div>
-    <div class="llm-content" id="llmOutput">Waiting for first solve...</div>
+    <div class="card-title">LLM Output <span id="resultBadge"></span></div>
+    <div id="artifactSection" style="display:none">
+      <div style="font-size:10px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Artifact</div>
+      <div class="artifact-box" id="artifactText"></div>
+      <div id="verifyIssues" style="margin-top:6px;font-size:11px"></div>
+    </div>
+    <div class="llm-content" id="llmOutput" style="margin-top:8px">Waiting for first solve...</div>
   </div>
 
   <!-- Bottom: Log -->
@@ -494,7 +782,7 @@ DASHBOARD_HTML = r"""<!DOCTYPE html>
 const PC=PHASECOLORSJS;
 const CSRF=document.querySelector('meta[name=csrf-token]').content;
 function H(method,body){return{method,headers:{'Content-Type':'application/json','X-CSRF-Token':CSRF},body:body?JSON.stringify(body):undefined}}
-let lastVersion=-1,prevTxMap={};
+let lastVersion=-1,prevTxMap={},fullWalletAddr='';
 
 function esc(s){const el=document.createElement('span');el.textContent=s;return el.innerHTML}
 function toast(msg,ok){const c=document.getElementById('toasts'),t=document.createElement('div');t.className='toast '+(ok?'toast-ok':'toast-err');t.textContent=msg;c.appendChild(t);setTimeout(()=>t.remove(),5000)}
@@ -507,8 +795,8 @@ function update(d){
   // Phase
   const badge=document.getElementById('phaseBadge');badge.innerHTML='<span class="dot"></span> '+d.phase;badge.style.background=PC[d.phase]||'#555';
   // Wallet
-  const addr=d.miner_address;const short=addr&&addr.length>12?addr.slice(0,6)+'...'+addr.slice(-4):'';
-  document.getElementById('walletInfo').textContent=short;
+  const addr=d.miner_address;fullWalletAddr=addr||'';const short=addr&&addr.length>12?addr.slice(0,6)+'...'+addr.slice(-4):'';
+  const wi=document.getElementById('walletInfo');wi.childNodes.forEach(n=>{if(n.nodeType===3)n.remove()});wi.insertAdjacentText('beforeend',short);
   // Stats
   document.getElementById('sSolves').textContent=d.total_solves;
   document.getElementById('sFails').textContent=d.total_fails;
@@ -516,8 +804,30 @@ function update(d){
   document.getElementById('sEpoch').textContent=d.epoch_id||'--';
   document.getElementById('sUptime').textContent=d.uptime;
   document.getElementById('sLLM').textContent=d.llm_credits>=0?'$'+d.llm_credits.toFixed(2):'--';
+  const ethEl=document.getElementById('sEth');if(d.eth_balance>0){ethEl.textContent=parseFloat(d.eth_balance).toFixed(5);ethEl.style.color=d.eth_balance<0.001?'var(--red)':'var(--text)'}else{ethEl.textContent='--'}
   // LLM output
   if(d.llm_output)document.getElementById('llmOutput').textContent=d.llm_output;
+  // Result badge + artifact
+  const rb=document.getElementById('resultBadge'),as=document.getElementById('artifactSection'),at=document.getElementById('artifactText'),vi=document.getElementById('verifyIssues');
+  if(d.solve_passed==='pass'){rb.innerHTML='<span class="result-badge pass">PASS</span>';rb.style.display='inline'}
+  else if(d.solve_passed==='fail'){rb.innerHTML='<span class="result-badge fail">FAIL</span>';rb.style.display='inline'}
+  else{rb.innerHTML='';rb.style.display='none'}
+  if(d.solve_artifact){as.style.display='block';at.textContent=d.solve_artifact;
+    let viHtml='';if(d.solve_verification_issues&&d.solve_verification_issues.length>0)viHtml=d.solve_verification_issues.map(i=>'<div style="color:var(--yellow);font-size:11px">'+esc(i)+'</div>').join('');
+    if(d.solve_passed==='fail'&&d.solve_failed_constraints&&d.solve_failed_constraints.length>0)viHtml+='<div style="color:var(--red);font-size:11px;margin-top:4px">Failed constraints: '+esc(d.solve_failed_constraints.join(', '))+'</div>';
+    vi.innerHTML=viHtml}else{as.style.display='none'}
+  // Challenge panel
+  const cc=document.getElementById('challengeContent');
+  if(d.challenge_questions&&d.challenge_questions.length>0){let html='';
+    if(d.challenge_doc_preview)html+='<div class="doc-preview">'+esc(d.challenge_doc_preview.slice(0,300))+(d.challenge_doc_preview.length>300?'...':'')+'</div>';
+    html+='<div style="font-size:10px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin:8px 0 4px">Questions</div>';
+    d.challenge_questions.forEach((q,i)=>{html+='<div class="q-item"><span class="q-label">Q'+(i+1)+'</span><div class="q-text">'+esc(q)+'</div></div>'});
+    if(d.challenge_constraints&&d.challenge_constraints.length>0){html+='<div style="font-size:10px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin:12px 0 4px">Constraints</div>';
+      const failSet=new Set(d.solve_failed_constraints||[]);
+      d.challenge_constraints.forEach((c,i)=>{const isFail=failSet.has(i);const isPass=d.solve_passed==='pass';
+        const cls=isFail?'constraint-fail':(isPass?'constraint-pass':'');
+        html+='<div class="constraint-item"><span class="constraint-idx '+cls+'">C'+(i+1)+'</span><span class="'+cls+'">'+esc(c)+'</span></div>'})}
+    cc.innerHTML=html}else if(d.phase!=='INIT'){cc.innerHTML='<div style="color:var(--muted);font-size:12px">Requesting challenge...</div>'}
   // Log
   const logEl=document.getElementById('logContent');
   if(d.log_lines&&d.log_lines.length>0){logEl.innerHTML=d.log_lines.map(l=>{const p=l.match(/^(\d{2}:\d{2}:\d{2})\s(.*)$/);if(p)return'<div class="log-line"><span class="log-ts">'+esc(p[1])+'</span>'+esc(p[2])+'</div>';return'<div class="log-line">'+esc(l)+'</div>'}).join('');logEl.scrollTop=logEl.scrollHeight}
@@ -527,7 +837,7 @@ function update(d){
   document.getElementById('btnStart').disabled=d.mining_active;document.getElementById('btnStop').disabled=!d.mining_active;
   document.getElementById('btnStart').style.opacity=d.mining_active?'.35':'1';document.getElementById('btnStop').style.opacity=d.mining_active?'1':'.35';
   // Staking
-  const sa=d.staked_amount||0;
+  const sa=d.staked_amount||0;currentStakedRaw=sa;
   document.getElementById('stakedAmt').textContent=sa>0?(sa/1e6).toFixed(1)+'M':'0';
   const tier=sa>=100e6?3:sa>=50e6?2:sa>=25e6?1:0;
   const tb=document.getElementById('tierBadge');
@@ -566,19 +876,40 @@ async function dashStake(amt){
   const d=await r.json();document.getElementById('stakeStatus').innerHTML='<span style="color:'+(d.ok?'var(--green)':'var(--red)')+'">'+esc(d.message)+'</span>';
   if(d.ok)setTimeout(()=>fetch('/api/refresh-staking'),2000);
 }
+let currentStakedRaw=0;
+function showUnstakeUI(){document.getElementById('unstakeUI').style.display='block';document.getElementById('unstakeAmt').value=''}
+function setUnstakePct(pct){const sa=currentStakedRaw;const amt=Math.floor(sa*(pct/100));document.getElementById('unstakeAmt').value=amt>0?amt.toLocaleString('en-US',{useGrouping:false}):'0'}
 async function dashUnstake(){
-  if(!confirm('Unstake all BOTCOIN? Starts a 24h cooldown. You cannot mine during this period.'))return;
+  const amt=document.getElementById('unstakeAmt').value.replace(/,/g,'').trim();
+  if(!amt||isNaN(amt)||Number(amt)<=0){document.getElementById('stakeStatus').innerHTML='<span style="color:var(--red)">Enter a valid amount</span>';return}
+  if(!confirm('Unstake '+Number(amt).toLocaleString()+' BOTCOIN? This starts a 24h cooldown.'))return;
   document.getElementById('stakeStatus').innerHTML='<span class="spinner"></span> Unstaking...';
-  const r=await fetch('/api/unstake',H('POST'));const d=await r.json();
+  document.getElementById('unstakeUI').style.display='none';
+  const r=await fetch('/api/unstake',H('POST',{amount:amt}));const d=await r.json();
   document.getElementById('stakeStatus').innerHTML='<span style="color:'+(d.ok?'var(--yellow)':'var(--red)')+'">'+esc(d.message)+'</span>';
 }
-async function dashWithdraw(){
-  document.getElementById('stakeStatus').innerHTML='<span class="spinner"></span> Withdrawing...';
-  const r=await fetch('/api/withdraw',H('POST'));const d=await r.json();
+function showSendReceive(mode){
+  const panel=document.getElementById('sendReceivePanel');
+  const rp=document.getElementById('receivePanel'),sp=document.getElementById('sendPanel');
+  panel.style.display='block';rp.style.display=mode==='receive'?'block':'none';sp.style.display=mode==='send'?'block':'none';
+  if(mode==='receive')document.getElementById('receiveAddr').textContent=fullWalletAddr||'—';
+  if(mode==='send'){const wb=document.getElementById('walletBotcoin').textContent;document.getElementById('sendBalance').textContent=wb&&wb!=='--'?wb:'0'}
+}
+function copyReceiveAddr(){if(!fullWalletAddr)return;navigator.clipboard.writeText(fullWalletAddr).then(()=>{const el=document.getElementById('receiveCopyTip');el.style.display='block';setTimeout(()=>el.style.display='none',2000)})}
+async function dashSend(){
+  const addr=document.getElementById('sendAddr').value.trim();
+  const amt=document.getElementById('sendAmt').value.replace(/,/g,'').trim();
+  if(!addr||!addr.startsWith('0x')||addr.length!==42){document.getElementById('stakeStatus').innerHTML='<span style="color:var(--red)">Invalid address</span>';return}
+  if(!amt||isNaN(amt)||Number(amt)<=0){document.getElementById('stakeStatus').innerHTML='<span style="color:var(--red)">Invalid amount</span>';return}
+  if(!confirm('Send '+Number(amt).toLocaleString()+' BOTCOIN to '+addr.slice(0,6)+'...'+addr.slice(-4)+'?'))return;
+  document.getElementById('stakeStatus').innerHTML='<span class="spinner"></span> Sending...';
+  document.getElementById('sendReceivePanel').style.display='none';
+  const r=await fetch('/api/send',H('POST',{to:addr,amount:amt}));const d=await r.json();
   document.getElementById('stakeStatus').innerHTML='<span style="color:'+(d.ok?'var(--green)':'var(--red)')+'">'+esc(d.message)+'</span>';
-  if(d.ok)setTimeout(()=>fetch('/api/refresh-staking'),2000);
+  if(d.ok)setTimeout(()=>fetch('/api/refresh-staking'),3000);
 }
 async function doLogout(){if(!confirm('Stop mining and logout?'))return;await fetch('/api/logout',H('POST'));window.location.href='/'}
+function copyWallet(){if(!fullWalletAddr)return;navigator.clipboard.writeText(fullWalletAddr).then(()=>{const tip=document.getElementById('copyTip');tip.classList.add('show');setTimeout(()=>tip.classList.remove('show'),1500)})}
 
 connectSSE();
 fetch('/api/refresh-staking');
@@ -703,6 +1034,14 @@ class MinerUI:
                 return html
             return self._serve_setup(session_id)
 
+        @app.route("/terms")
+        def terms():
+            return TERMS_HTML
+
+        @app.route("/privacy")
+        def privacy():
+            return PRIVACY_HTML
+
         # --- SSE (authenticated) ---
         @app.route("/events")
         def events():
@@ -782,7 +1121,10 @@ class MinerUI:
                 key_match = _re.search(r'(bk_[A-Za-z0-9]+)', output)
                 if key_match:
                     api_key = key_match.group(1)
-                else:
+
+                # If CLI succeeded but key not in output, read from config
+                # (bankr login updates config with the correct key on success)
+                if not api_key and result.returncode == 0:
                     config_path = os.path.expanduser("~/.bankr/config.json")
                     try:
                         with open(config_path) as f:
@@ -800,25 +1142,10 @@ class MinerUI:
                                     secure=request.is_secure)
                     return resp
                 if result.returncode == 0:
-                    return jsonify({"ok": False, "error": "Login ok but no key found. Paste from bankr.bot/api."})
+                    return jsonify({"ok": False, "setup_guide": True, "error": "Account verified! Complete these steps to finish setup:"})
                 return jsonify({"ok": False, "error": "Verification failed. Check the code and try again."})
             except subprocess.TimeoutExpired:
-                config_path = os.path.expanduser("~/.bankr/config.json")
-                try:
-                    with open(config_path) as f:
-                        api_key = json.load(f).get("apiKey", "")
-                        if api_key:
-                            session_id = sessions.create_session(api_key)
-                            self._create_state(session_id)
-                            csrf_token = sessions.get_csrf_token(session_id)
-                            resp = jsonify({"ok": True, "csrf_token": csrf_token})
-                            resp.set_cookie("session_id", session_id,
-                                            httponly=True, samesite="Strict", max_age=86400,
-                                            secure=request.is_secure)
-                            return resp
-                except Exception:
-                    pass
-                return jsonify({"ok": False, "error": "CLI timed out. Run 'bankr login' in terminal, paste key above."})
+                return jsonify({"ok": False, "error": "Verification timed out. Please try again."})
             except FileNotFoundError:
                 return jsonify({"ok": False, "error": "Bankr CLI not installed. Install: npm i -g @bankr/cli"})
             except Exception:
@@ -1091,6 +1418,45 @@ class MinerUI:
             except Exception:
                 state.update_pending_tx(tx_id, "failed")
                 return jsonify({"ok": False, "message": "Withdrawal failed. Cooldown may not have elapsed."})
+
+        @app.route("/api/send", methods=["POST"])
+        @auth
+        @csrf
+        def dashboard_send():
+            session_id = g.session_id
+            api_key = sessions.get_api_key(session_id)
+            state = self._get_state(session_id)
+            if not api_key:
+                return jsonify({"ok": False, "message": "Not connected"})
+            body = request.get_json(silent=True) or {}
+            to_addr = body.get("to", "").strip()
+            amount = body.get("amount", "").strip()
+            # Validate address
+            if not to_addr or not re.match(r'^0x[a-fA-F0-9]{40}$', to_addr):
+                return jsonify({"ok": False, "message": "Invalid address"})
+            # Validate amount
+            try:
+                amt_float = float(amount.replace(",", ""))
+                if amt_float <= 0:
+                    raise ValueError
+            except (ValueError, TypeError):
+                return jsonify({"ok": False, "message": "Invalid amount"})
+            tx_id = state.add_pending_tx(f"Send {amt_float:,.0f} BOTCOIN")
+            try:
+                from bankr_client import BankrClient
+                bankr = BankrClient(api_key)
+                prompt = f"send {amt_float:,.0f} BOTCOIN (0xA601877977340862Ca67f816eb079958E5bd0BA3) to {to_addr} on base"
+                result = bankr.prompt_and_poll(prompt, timeout=120)
+                if "error" in str(result).lower() and "fail" in str(result).lower():
+                    state.update_pending_tx(tx_id, "failed")
+                    state.log(f"Send failed: {result[:100]}")
+                    return jsonify({"ok": False, "message": "Transfer failed. Check balance and try again."})
+                state.update_pending_tx(tx_id, "confirmed")
+                state.log(f"Sent {amt_float:,.0f} BOTCOIN to {to_addr[:10]}...")
+                return jsonify({"ok": True, "message": f"Sent {amt_float:,.0f} BOTCOIN!"})
+            except Exception:
+                state.update_pending_tx(tx_id, "failed")
+                return jsonify({"ok": False, "message": "Transfer failed. Please try again."})
 
         @app.route("/api/refresh-staking")
         @auth
