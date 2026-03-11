@@ -148,6 +148,7 @@ TERMS_HTML = """<!DOCTYPE html>
 <html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Terms of Service — BOTCOIN Miner</title>
+<link rel="icon" type="image/x-icon" href="/static/favicon.ico"><link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32.png"><link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
 <style>
 """ + SHARED_CSS + LEGAL_CSS + """
 </style></head><body>
@@ -225,6 +226,7 @@ PRIVACY_HTML = """<!DOCTYPE html>
 <html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Privacy Policy — BOTCOIN Miner</title>
+<link rel="icon" type="image/x-icon" href="/static/favicon.ico"><link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32.png"><link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
 <style>
 """ + SHARED_CSS + LEGAL_CSS + """
 </style></head><body>
@@ -314,6 +316,7 @@ LANDING_HTML = """<!DOCTYPE html>
 <html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>BOTCOIN Miner</title>
+<link rel="icon" type="image/x-icon" href="/static/favicon.ico"><link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32.png"><link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
 <style>
 """ + SHARED_CSS + """
 .landing{min-height:100vh;display:flex;flex-direction:column;align-items:center;overflow:hidden;position:relative}
@@ -363,6 +366,7 @@ SETUP_HTML = r"""<!DOCTYPE html>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="csrf-token" content="CSRFTOKEN">
 <title>BOTCOIN Miner &mdash; Setup</title>
+<link rel="icon" type="image/x-icon" href="/static/favicon.ico"><link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32.png"><link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
 <style>
 """ + SHARED_CSS + r"""
 .container{max-width:560px;margin:0 auto;padding:40px 20px 60px}
@@ -649,6 +653,7 @@ DASHBOARD_HTML = r"""<!DOCTYPE html>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="csrf-token" content="CSRFTOKEN">
 <title>BOTCOIN Miner Dashboard</title>
+<link rel="icon" type="image/x-icon" href="/static/favicon.ico"><link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32.png"><link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
 <style>
 """ + SHARED_CSS + r"""
 .header{display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:var(--bg-card);border-bottom:1px solid var(--border)}
@@ -1012,7 +1017,7 @@ class MinerUI:
         self._mining = MiningManager()
         self._states: dict[str, MinerState] = {}  # session_id -> MinerState
         self._states_lock = threading.Lock()
-        self._app = Flask(__name__)
+        self._app = Flask(__name__, static_folder="static", static_url_path="/static")
         self._app.logger.disabled = True
         self._on_setup_finish = None
         self._setup_routes()
