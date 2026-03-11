@@ -1328,16 +1328,23 @@ class MinerUI:
                                headers=bankr_headers, timeout=15)
                     print(f"[verify-otp] accept-terms: {tr.status_code}")
 
-                    # Generate API key
-                    key_resp = httpx.post("https://api.bankr.bot/generate-api-key",
-                                          json={"name": "BOTCOIN Miner",
-                                                "agentApiEnabled": {"readOnly": False},
-                                                "llmGatewayEnabled": True},
-                                          headers=bankr_headers, timeout=15)
-                    print(f"[verify-otp] generate-api-key: {key_resp.status_code} {key_resp.text[:200]}")
-                    if key_resp.status_code < 400:
-                        key_data = key_resp.json()
-                        api_key = key_data.get("apiKey", "")
+                    # Generate API key (retry with unique suffix if name taken)
+                    import secrets as _secrets
+                    for _attempt in range(3):
+                        key_name = "BOTCOIN Miner" if _attempt == 0 else f"BOTCOIN Miner {_secrets.token_hex(3)}"
+                        key_resp = httpx.post("https://api.bankr.bot/generate-api-key",
+                                              json={"name": key_name,
+                                                    "agentApiEnabled": {"readOnly": False},
+                                                    "llmGatewayEnabled": True},
+                                              headers=bankr_headers, timeout=15)
+                        print(f"[verify-otp] generate-api-key ({key_name}): {key_resp.status_code}")
+                        if key_resp.status_code < 400:
+                            key_data = key_resp.json()
+                            api_key = key_data.get("apiKey", "")
+                            break
+                        if key_resp.status_code == 400 and "already exists" in key_resp.text.lower():
+                            continue  # retry with unique name
+                        break
                 except Exception as e:
                     print(f"[verify-otp] Bankr key generation error: {e}")
 
