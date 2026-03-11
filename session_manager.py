@@ -1,13 +1,12 @@
 """Server-side session store with encrypted API key storage.
 
 API keys are encrypted at rest using Fernet (AES-128-CBC + HMAC-SHA256).
-The encryption key is ephemeral — generated at startup, held only in memory.
-All sessions are invalidated on server restart (by design).
+The encryption key is persisted to disk so sessions survive server restarts.
 """
 
 import os
 import time
-import uuid
+import json
 import secrets
 import threading
 from cryptography.fernet import Fernet
@@ -16,13 +15,77 @@ from cryptography.fernet import Fernet
 # Max concurrent sessions to prevent resource exhaustion
 MAX_SESSIONS = 50
 SESSION_TTL = 86400  # 24 hours
+SESSION_FILE = os.environ.get("SESSION_FILE", "/tmp/botcoin_sessions.json")
+KEY_FILE = os.environ.get("SESSION_KEY_FILE", "/tmp/botcoin_fernet.key")
 
 
 class SessionManager:
     def __init__(self):
-        self._fernet = Fernet(Fernet.generate_key())
+        self._fernet = self._load_or_create_key()
         self._sessions: dict[str, dict] = {}
         self._lock = threading.Lock()
+        self._load_sessions()
+
+    def _load_or_create_key(self) -> Fernet:
+        """Load Fernet key from disk, or create and persist a new one."""
+        try:
+            if os.path.exists(KEY_FILE):
+                with open(KEY_FILE, "r") as f:
+                    key = f.read().strip()
+                if key:
+                    return Fernet(key.encode())
+        except Exception:
+            pass
+        key = Fernet.generate_key()
+        try:
+            with open(KEY_FILE, "w") as f:
+                f.write(key.decode())
+            os.chmod(KEY_FILE, 0o600)
+        except Exception:
+            pass
+        return Fernet(key)
+
+    def _load_sessions(self):
+        """Load sessions from disk."""
+        try:
+            if os.path.exists(SESSION_FILE):
+                with open(SESSION_FILE, "r") as f:
+                    data = json.load(f)
+                now = time.time()
+                for sid, sess in data.items():
+                    # Skip expired sessions
+                    if now - sess.get("created_at", 0) > SESSION_TTL:
+                        continue
+                    # encrypted_key is stored as string, convert back to bytes
+                    sess["encrypted_key"] = sess["encrypted_key"].encode()
+                    # Verify the key can be decrypted with current Fernet key
+                    try:
+                        self._fernet.decrypt(sess["encrypted_key"])
+                        self._sessions[sid] = sess
+                    except Exception:
+                        pass  # Key from different Fernet instance, skip
+        except Exception:
+            pass
+
+    def _save_sessions(self):
+        """Persist sessions to disk. Must be called with lock held."""
+        try:
+            data = {}
+            for sid, sess in self._sessions.items():
+                data[sid] = {
+                    "encrypted_key": sess["encrypted_key"].decode()
+                        if isinstance(sess["encrypted_key"], bytes)
+                        else sess["encrypted_key"],
+                    "miner_address": sess.get("miner_address", ""),
+                    "csrf_token": sess.get("csrf_token", ""),
+                    "created_at": sess.get("created_at", 0),
+                    "last_active": sess.get("last_active", 0),
+                }
+            with open(SESSION_FILE, "w") as f:
+                json.dump(data, f)
+            os.chmod(SESSION_FILE, 0o600)
+        except Exception:
+            pass
 
     def create_session(self, api_key: str, miner_address: str = "") -> str:
         """Create a new session. Returns session_id."""
@@ -45,6 +108,7 @@ class SessionManager:
                 "created_at": time.time(),
                 "last_active": time.time(),
             }
+            self._save_sessions()
         return session_id
 
     def get_session(self, session_id: str) -> dict | None:
@@ -55,6 +119,7 @@ class SessionManager:
                 return None
             if time.time() - sess["created_at"] > SESSION_TTL:
                 del self._sessions[session_id]
+                self._save_sessions()
                 return None
             sess["last_active"] = time.time()
             return {
@@ -72,6 +137,7 @@ class SessionManager:
                 return None
             if time.time() - sess["created_at"] > SESSION_TTL:
                 del self._sessions[session_id]
+                self._save_sessions()
                 return None
             sess["last_active"] = time.time()
         # Decrypt outside lock to minimize lock duration
@@ -94,11 +160,13 @@ class SessionManager:
             sess = self._sessions.get(session_id)
             if sess:
                 sess["miner_address"] = address
+                self._save_sessions()
 
     def destroy_session(self, session_id: str):
         """Remove a session."""
         with self._lock:
             self._sessions.pop(session_id, None)
+            self._save_sessions()
 
     def _cleanup_expired_locked(self):
         """Remove expired sessions. Must be called with lock held."""
@@ -112,3 +180,4 @@ class SessionManager:
         """Public cleanup method."""
         with self._lock:
             self._cleanup_expired_locked()
+            self._save_sessions()
