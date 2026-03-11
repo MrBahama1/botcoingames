@@ -57,8 +57,8 @@ def validate_email(email: str) -> bool:
 
 
 def validate_otp(code: str) -> bool:
-    """OTP is a 4-8 digit numeric code."""
-    return bool(re.match(r'^\d{4,8}$', code))
+    """OTP is a 4-8 character alphanumeric code."""
+    return bool(re.match(r'^[a-zA-Z0-9]{4,8}$', code))
 
 
 def sanitize_log(msg: str) -> str:
