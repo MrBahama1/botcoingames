@@ -48,10 +48,16 @@ class MiningManager:
                     ui_log, ui_set_phase, ui_update, session_id, self
                 )
             except Exception as e:
+                import traceback
+                tb = traceback.format_exc()
+                print(f"[miner] Fatal error: {tb}")
                 if ui_log:
                     ui_log(f"Fatal error: {e}")
+                    ui_log(f"Traceback: {tb[-500:]}")
                 if ui_set_phase:
                     ui_set_phase("FAILED")
+                state.mining_active = False
+                state.bump()
 
         thread = threading.Thread(target=run, daemon=True, name=f"miner-{session_id[:8]}")
         with self._lock:
@@ -176,8 +182,14 @@ def _run_mining(api_key, model, state, auto_topup, topup_amount, topup_threshold
 
     # Auth with coordinator
     ui.log("Authenticating with coordinator...")
-    coordinator.authenticate(bankr)
-    ui.log("Auth complete!")
+    try:
+        coordinator.authenticate(bankr)
+        ui.log("Auth complete!")
+    except Exception as e:
+        import traceback
+        ui.log(f"Auth with coordinator failed: {e}")
+        print(f"[miner] Auth traceback: {traceback.format_exc()}")
+        raise
 
     # Epoch info
     try:
