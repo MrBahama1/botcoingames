@@ -20,7 +20,11 @@ class CoordinatorClient:
         self.miner = miner
         self.client = httpx.Client(
             base_url=COORDINATOR_URL,
-            headers={"Content-Type": "application/json"},
+            headers={
+                "Content-Type": "application/json",
+                "User-Agent": "BOTCOIN-Miner/1.0",
+                "Accept": "application/json",
+            },
             timeout=30.0,
         )
         self._token = None

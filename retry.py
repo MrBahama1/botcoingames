@@ -38,6 +38,9 @@ def with_retry(fn, max_attempts=6, retry_on=(429, 500, 502, 503, 504), jitter_pc
             if resp.status_code in retry_on:
                 # Retryable — will retry after backoff
                 last_error = (resp.status_code, resp.text)
+            elif resp.status_code == 403 and "<!DOCTYPE" in resp.text[:50]:
+                # Cloudflare challenge page — transient, retry
+                last_error = (resp.status_code, "Cloudflare challenge (retrying)")
             else:
                 # Non-retryable error — raise immediately so caller can handle
                 raise HTTPError(resp.status_code, resp.text)
