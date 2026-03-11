@@ -1291,11 +1291,26 @@ class MinerUI:
                                       headers=headers, timeout=30)
                     if resp.status_code < 400:
                         data = resp.json()
-                        identity_token = data.get("identity_token", "")
+                        identity_token = data.get("identity_token") or data.get("token") or ""
+                        # Try nested structures
+                        if not identity_token and isinstance(data.get("user"), dict):
+                            identity_token = data.get("identity_token", "")
+                        print(f"[verify-otp] Privy auth OK, keys: {list(data.keys())}, has_token: {bool(identity_token)}")
                     elif resp.status_code == 429:
                         return jsonify({"ok": False, "error": "Rate limited. Wait a moment and try again."})
-                except Exception:
-                    pass
+                    else:
+                        print(f"[verify-otp] Privy auth failed: {resp.status_code} {resp.text[:200]}")
+                        try:
+                            err_data = resp.json()
+                            err_msg = err_data.get("message", "") or err_data.get("error", "")
+                            if "expired" in err_msg.lower():
+                                return jsonify({"ok": False, "error": "Code expired. Please request a new one."})
+                            if "invalid" in err_msg.lower() or "incorrect" in err_msg.lower():
+                                return jsonify({"ok": False, "error": "Invalid code. Please check and try again."})
+                        except Exception:
+                            pass
+                except Exception as e:
+                    print(f"[verify-otp] Privy exception: {e}")
 
             # Step 3: Generate wallet via Bankr
             if identity_token:
@@ -1304,12 +1319,14 @@ class MinerUI:
                                      "User-Agent": "bankr-cli/0.1",
                                      "privy-id-token": identity_token}
                     # Generate wallet (idempotent for existing users)
-                    httpx.post("https://api.bankr.bot/cli/generate-wallet",
+                    wr = httpx.post("https://api.bankr.bot/cli/generate-wallet",
                                headers=bankr_headers, timeout=15)
+                    print(f"[verify-otp] generate-wallet: {wr.status_code}")
 
                     # Accept terms
-                    httpx.post("https://api.bankr.bot/user/accept-terms",
+                    tr = httpx.post("https://api.bankr.bot/user/accept-terms",
                                headers=bankr_headers, timeout=15)
+                    print(f"[verify-otp] accept-terms: {tr.status_code}")
 
                     # Generate API key
                     key_resp = httpx.post("https://api.bankr.bot/generate-api-key",
@@ -1317,11 +1334,12 @@ class MinerUI:
                                                 "agentApiEnabled": {"readOnly": False},
                                                 "llmGatewayEnabled": True},
                                           headers=bankr_headers, timeout=15)
+                    print(f"[verify-otp] generate-api-key: {key_resp.status_code} {key_resp.text[:200]}")
                     if key_resp.status_code < 400:
                         key_data = key_resp.json()
                         api_key = key_data.get("apiKey", "")
-                except Exception:
-                    pass
+                except Exception as e:
+                    print(f"[verify-otp] Bankr key generation error: {e}")
 
             # Fallback to CLI if HTTP flow didn't produce a key
             if not api_key:
