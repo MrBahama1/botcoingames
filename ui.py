@@ -560,6 +560,7 @@ function showStatus(elId,cls,msg){const el=document.getElementById(elId);if(!msg
 function goStep(n){document.getElementById('step'+currentStep).classList.remove('active');currentStep=n;document.getElementById('step'+n).classList.add('active');updateProgress();if(n===3)loadWallet();if(n===4)checkStake();if(n===5)loadLLMCredits()}
 function confirmBankrConfig(){showStatus('step2Status','');goStep(3)}
 
+let _privyAppId='',_privyClientId='';
 async function sendOtp(){
   const email=document.getElementById('emailInput').value.trim();
   if(!email||!email.includes('@')){showStatus('step1Status','err','Enter a valid email');return}
@@ -567,14 +568,14 @@ async function sendOtp(){
   showStatus('step1Status','info','<span class="spinner"></span> Sending code...');
   const r=await fetch('/api/setup/send-otp',H('POST',{email}));
   const d=await r.json();
-  if(d.ok){showStatus('step1Status','ok','Code sent! Check email.');document.getElementById('otpSection').classList.add('show')}
+  if(d.ok){if(d.privy_app_id)_privyAppId=d.privy_app_id;if(d.privy_client_id)_privyClientId=d.privy_client_id;showStatus('step1Status','ok','Code sent! Check email.');document.getElementById('otpSection').classList.add('show')}
   else{showStatus('step1Status','err',d.error||'Failed');document.getElementById('btnSendOtp').disabled=false}
 }
 async function verifyOtp(){
   const email=document.getElementById('emailInput').value.trim(),code=document.getElementById('otpInput').value.trim();
   if(!code){showStatus('step1Status','err','Enter the verification code');return}
   showStatus('step1Status','info','<span class="spinner"></span> Verifying...');
-  const r=await fetch('/api/setup/verify-otp',H('POST',{email,code}));
+  const r=await fetch('/api/setup/verify-otp',H('POST',{email,code,privy_app_id:_privyAppId,privy_client_id:_privyClientId}));
   const d=await r.json();
   if(d.ok){updateCSRF(d.csrf_token);showStatus('step1Status','ok','Account created!');setTimeout(()=>goStep(2),500)}
   else if(d.setup_guide){document.getElementById('step1Status').innerHTML='<div class="status ok" style="margin-bottom:8px">Account verified!</div><div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;font-size:13px"><div style="font-weight:600;margin-bottom:10px">Complete these steps to finish setup:</div><ol style="margin:0;padding-left:20px;line-height:2;color:var(--text)"><li>Go to <a href="https://bankr.bot/api" target="_blank" style="color:var(--accent);font-weight:600">bankr.bot/api</a></li><li>Log in with this same email</li><li>Click <strong>Create API Key</strong></li><li>Enable <strong>Agent API</strong> and <strong>LLM Gateway</strong></li><li>Toggle <strong>Read-Only</strong> off</li><li>Come back here and log in again</li></ol></div>'}
@@ -1206,34 +1207,54 @@ class MinerUI:
             if not _check_rate_limit(f"otp:{ip}", 3, 60):
                 return jsonify({"ok": False, "error": "Too many attempts. Try again in a minute."}), 429
 
-            # Try HTTP API first (works on all platforms)
+            # Get Privy config from Bankr
+            import httpx
             try:
-                import httpx
-                resp = httpx.post("https://api.bankr.bot/auth/otp/send",
-                                  json={"email": email}, timeout=15)
+                config_resp = httpx.get("https://api.bankr.bot/cli/config",
+                                        headers={"User-Agent": "bankr-cli/0.1"}, timeout=15)
+                if config_resp.status_code >= 400:
+                    raise Exception(f"Config fetch failed: {config_resp.status_code}")
+                privy_config = config_resp.json()
+                privy_app_id = privy_config["privyAppId"]
+                privy_client_id = privy_config.get("privyClientId", "")
+            except Exception:
+                # Fallback to CLI
+                try:
+                    import subprocess
+                    result = subprocess.run(["bankr", "login", "email", "--", email],
+                        capture_output=True, text=True, timeout=30)
+                    output = result.stdout + result.stderr
+                    if result.returncode == 0 or "code" in output.lower() or "sent" in output.lower():
+                        return jsonify({"ok": True})
+                except Exception:
+                    pass
+                return jsonify({"ok": False, "error": "Failed to send code. Please try again."})
+
+            # Send OTP via Privy
+            try:
+                headers = {"Content-Type": "application/json",
+                           "privy-app-id": privy_app_id}
+                if privy_client_id:
+                    headers["privy-client-id"] = privy_client_id
+                resp = httpx.post("https://auth.privy.io/api/v1/passwordless/init",
+                                  json={"email": email, "type": "email"},
+                                  headers=headers, timeout=15)
                 if resp.status_code < 400:
-                    return jsonify({"ok": True})
+                    return jsonify({"ok": True, "privy_app_id": privy_app_id,
+                                    "privy_client_id": privy_client_id})
+                if resp.status_code == 429:
+                    return jsonify({"ok": False, "error": "Rate limited. Wait a moment and try again."})
+                return jsonify({"ok": False, "error": "Failed to send code. Please try again."})
             except Exception:
-                pass
-
-            # Fallback to CLI
-            try:
-                import subprocess
-                result = subprocess.run(["bankr", "login", "email", "--", email],
-                    capture_output=True, text=True, timeout=30)
-                output = result.stdout + result.stderr
-                if result.returncode == 0 or "code" in output.lower() or "sent" in output.lower():
-                    return jsonify({"ok": True})
-            except Exception:
-                pass
-
-            return jsonify({"ok": False, "error": "Failed to send code. Please try again."})
+                return jsonify({"ok": False, "error": "Failed to send code. Please try again."})
 
         @app.route("/api/setup/verify-otp", methods=["POST"])
         def setup_verify_otp():
             body = request.get_json(silent=True) or {}
             email = body.get("email", "").strip()
             code = body.get("code", "").strip()
+            privy_app_id = body.get("privy_app_id", "").strip()
+            privy_client_id = body.get("privy_client_id", "").strip()
             if not email or not validate_email(email):
                 return jsonify({"ok": False, "error": "Invalid email"})
             if not code or not validate_otp(code):
@@ -1243,35 +1264,70 @@ class MinerUI:
             if not _check_rate_limit(f"verify:{ip}", 5, 60):
                 return jsonify({"ok": False, "error": "Too many attempts. Try again in a minute."}), 429
 
-            import subprocess, os
-            import re as _re
+            import httpx
             api_key = None
 
-            # Try HTTP API first (works on all platforms including Railway)
-            try:
-                import httpx
-                resp = httpx.post("https://api.bankr.bot/auth/otp/verify",
-                                  json={"email": email, "code": code,
-                                        "acceptTerms": True,
-                                        "keyName": "BOTCOIN Miner",
-                                        "readWrite": True},
-                                  timeout=30)
-                if resp.status_code < 400:
-                    data = resp.json()
-                    api_key = data.get("apiKey") or data.get("api_key") or data.get("key", "")
-                    # Check nested response shapes
-                    if not api_key and isinstance(data.get("data"), dict):
-                        api_key = data["data"].get("apiKey") or data["data"].get("api_key", "")
-                    if not api_key:
-                        key_match = _re.search(r'(bk_[A-Za-z0-9]+)', resp.text)
-                        if key_match:
-                            api_key = key_match.group(1)
-            except Exception:
-                pass
+            # Step 1: Get Privy config if not passed from send-otp
+            if not privy_app_id:
+                try:
+                    config_resp = httpx.get("https://api.bankr.bot/cli/config",
+                                            headers={"User-Agent": "bankr-cli/0.1"}, timeout=15)
+                    privy_config = config_resp.json()
+                    privy_app_id = privy_config["privyAppId"]
+                    privy_client_id = privy_config.get("privyClientId", "")
+                except Exception:
+                    pass
 
-            # Fallback to CLI if HTTP didn't get a key
+            # Step 2: Verify OTP via Privy to get identity token
+            identity_token = None
+            if privy_app_id:
+                try:
+                    headers = {"Content-Type": "application/json",
+                               "privy-app-id": privy_app_id}
+                    if privy_client_id:
+                        headers["privy-client-id"] = privy_client_id
+                    resp = httpx.post("https://auth.privy.io/api/v1/passwordless/authenticate",
+                                      json={"email": email, "code": code, "mode": "login-or-sign-up"},
+                                      headers=headers, timeout=30)
+                    if resp.status_code < 400:
+                        data = resp.json()
+                        identity_token = data.get("identity_token", "")
+                    elif resp.status_code == 429:
+                        return jsonify({"ok": False, "error": "Rate limited. Wait a moment and try again."})
+                except Exception:
+                    pass
+
+            # Step 3: Generate wallet via Bankr
+            if identity_token:
+                try:
+                    bankr_headers = {"Content-Type": "application/json",
+                                     "User-Agent": "bankr-cli/0.1",
+                                     "privy-id-token": identity_token}
+                    # Generate wallet (idempotent for existing users)
+                    httpx.post("https://api.bankr.bot/cli/generate-wallet",
+                               headers=bankr_headers, timeout=15)
+
+                    # Accept terms
+                    httpx.post("https://api.bankr.bot/user/accept-terms",
+                               headers=bankr_headers, timeout=15)
+
+                    # Generate API key
+                    key_resp = httpx.post("https://api.bankr.bot/generate-api-key",
+                                          json={"name": "BOTCOIN Miner",
+                                                "agentApiEnabled": {"readOnly": False},
+                                                "llmGatewayEnabled": True},
+                                          headers=bankr_headers, timeout=15)
+                    if key_resp.status_code < 400:
+                        key_data = key_resp.json()
+                        api_key = key_data.get("apiKey", "")
+                except Exception:
+                    pass
+
+            # Fallback to CLI if HTTP flow didn't produce a key
             if not api_key:
                 try:
+                    import subprocess, os
+                    import re as _re
                     result = subprocess.run(
                         ["bankr", "login", "email", "--", email, "--code", code,
                          "--accept-terms", "--key-name", "BOTCOIN Miner", "--read-write"],
@@ -1282,8 +1338,6 @@ class MinerUI:
                     key_match = _re.search(r'(bk_[A-Za-z0-9]+)', output)
                     if key_match:
                         api_key = key_match.group(1)
-
-                    # If CLI succeeded but key not in output, read from config
                     if not api_key and result.returncode == 0:
                         config_path = os.path.expanduser("~/.bankr/config.json")
                         try:
@@ -1291,13 +1345,6 @@ class MinerUI:
                                 api_key = json.load(f).get("apiKey", "")
                         except Exception:
                             pass
-
-                    if not api_key and result.returncode == 0:
-                        return jsonify({"ok": False, "setup_guide": True, "error": "Account verified! Complete these steps to finish setup:"})
-                except subprocess.TimeoutExpired:
-                    return jsonify({"ok": False, "error": "Verification timed out. Please try again."})
-                except FileNotFoundError:
-                    pass
                 except Exception:
                     pass
 
