@@ -1027,6 +1027,8 @@ function copyWallet(){if(!fullWalletAddr)return;navigator.clipboard.writeText(fu
 
 connectSSE();
 fetch('/api/refresh-staking');
+// Auto-start mining if not already running
+setTimeout(()=>{if(!_loaded)return;fetch('/api/control',H('POST',{action:'start'}))},1000);
 </script></body></html>"""
 
 
@@ -1598,6 +1600,13 @@ class MinerUI:
                 state.mining_active = True
                 state.bump()
                 state.log("Mining resumed")
+                # Ensure mining thread is running
+                api_key = sessions.get_api_key(session_id)
+                if api_key and self._on_setup_finish:
+                    model = state.model or "claude-sonnet-4-6"
+                    auto_topup = getattr(state, 'auto_topup', False)
+                    state.setup_complete = True
+                    self._on_setup_finish(session_id, api_key, model, state, auto_topup)
             elif action == "stop":
                 state.mining_active = False
                 state.bump()
