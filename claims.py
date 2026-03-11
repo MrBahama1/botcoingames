@@ -29,8 +29,8 @@ class ClaimChecker:
         self._stop = True
 
     def _run(self):
-        # Initial delay to let mining start
-        time.sleep(60)
+        # Initial delay to let mining get going first
+        time.sleep(300)  # 5 min — don't interfere with early solves
         while not self._stop:
             try:
                 self._check_claims()

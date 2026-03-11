@@ -200,9 +200,12 @@ def _run_mining(api_key, model, state, auto_topup, topup_amount, topup_threshold
     except Exception:
         pass
 
-    # Start claim checker
+    # Start claim checker with its own client instances to avoid token conflicts
     from claims import ClaimChecker
-    claim_checker = ClaimChecker(coordinator, bankr, state, ui)
+    claim_bankr = BankrClient(api_key)
+    claim_coord = CoordinatorClient(miner)
+    claim_coord.authenticate(claim_bankr)
+    claim_checker = ClaimChecker(claim_coord, claim_bankr, state, ui)
     claim_checker.start()
     ui.log(f"Auto-claim: {'ON' if state.auto_claim else 'OFF'}")
 
