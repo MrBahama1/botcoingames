@@ -1539,7 +1539,9 @@ class MinerUI:
         import logging
         logging.getLogger('werkzeug').setLevel(logging.ERROR)
         def run():
-            self._app.run(host="127.0.0.1", port=port, threaded=True, use_reloader=False)
+            import os
+            host = "0.0.0.0" if os.environ.get("RAILWAY_ENVIRONMENT") else "127.0.0.1"
+            self._app.run(host=host, port=port, threaded=True, use_reloader=False)
         self._server_thread = threading.Thread(target=run, daemon=True)
         self._server_thread.start()
         if open_browser:

@@ -18,9 +18,11 @@ def main():
     parser.add_argument("--model", help="LLM model ID override")
     parser.add_argument("--topup-amount", type=float, default=LLM_TOPUP_AMOUNT)
     parser.add_argument("--topup-threshold", type=float, default=LLM_CREDIT_THRESHOLD)
-    parser.add_argument("--port", type=int, default=5157,
+    parser.add_argument("--port", type=int,
+                        default=int(os.environ.get("PORT", 5157)),
                         help="Web dashboard port (default: 5157)")
     parser.add_argument("--no-browser", action="store_true",
+                        default=bool(os.environ.get("RAILWAY_ENVIRONMENT")),
                         help="Don't auto-open browser")
     args = parser.parse_args()
 
