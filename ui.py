@@ -25,7 +25,7 @@ from auth import (
 )
 
 PHASE_COLORS = {
-    "INIT": "#555", "SETUP": "#d4a017", "AUTHENTICATING": "#d4a017",
+    "INIT": "#555", "LOADING": "#d4a017", "SETUP": "#d4a017", "AUTHENTICATING": "#d4a017",
     "REQUESTING": "#00d4ff", "SOLVING": "#7b2fff", "VERIFYING": "#00d4ff",
     "SUBMITTING": "#d4a017", "POSTING_RECEIPT": "#00e676", "COOLDOWN": "#4a5568",
     "PAUSED": "#ff4757", "SUCCESS": "#00e676", "FAILED": "#ff4757",
@@ -753,10 +753,11 @@ DASHBOARD_HTML = r"""<!DOCTYPE html>
 .log-content{max-height:300px}.llm-content{max-height:400px}.challenge-content{max-height:350px}
 }
 </style></head><body>
+<div id="dashLoading" style="position:fixed;inset:0;z-index:999;background:var(--bg);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px"><span class="spinner" style="width:28px;height:28px;border-width:3px"></span><div style="color:var(--dim);font-size:13px">Loading dashboard...</div></div>
 <div class="header">
   <div class="header-left">
     <div class="logo"><span class="grad-text">BOTCOIN</span> MINER</div>
-    <span class="phase" id="phaseBadge"><span class="dot"></span> INIT</span>
+    <span class="phase" id="phaseBadge" style="background:#d4a017"><span class="dot"></span> LOADING</span>
     <span class="wallet-tag" id="walletInfo" onclick="copyWallet()" title="Click to copy full address"><span class="copy-tip" id="copyTip">Copied!</span></span>
   </div>
   <div class="controls">
@@ -898,7 +899,8 @@ function toast(msg,ok){const c=document.getElementById('toasts'),t=document.crea
 function ago(ts){const s=Math.floor((Date.now()/1000)-ts);if(s<60)return s+'s ago';if(s<3600)return Math.floor(s/60)+'m ago';return Math.floor(s/3600)+'h ago'}
 function fmtCooldown(secs){if(secs<=0)return'Ready!';const h=Math.floor(secs/3600),m=Math.floor((secs%3600)/60),s=secs%60;return(h?h+'h ':'')+(m?m+'m ':'')+s+'s'}
 
-function connectSSE(){const es=new EventSource('/events');es.onmessage=function(e){const d=JSON.parse(e.data);if(d.version===lastVersion)return;lastVersion=d.version;update(d)};es.onerror=function(){es.close();setTimeout(connectSSE,2000)}}
+let _loaded=false;
+function connectSSE(){const es=new EventSource('/events');es.onmessage=function(e){const d=JSON.parse(e.data);if(!_loaded){_loaded=true;document.getElementById('dashLoading').style.display='none'}if(d.version===lastVersion)return;lastVersion=d.version;update(d)};es.onerror=function(){es.close();setTimeout(connectSSE,2000)}}
 async function refreshBalances(){try{const r=await fetch('/api/refresh-balances');const d=await r.json();if(d.ok){lastVersion=-1}}catch(e){}}
 let _docExpanded=false;
 async function toggleFullDoc(){const pre=document.getElementById('docPreviewText');const full=document.getElementById('docFullText');if(!pre||!full)return;if(_docExpanded){full.style.display='none';pre.style.display='';_docExpanded=false}else{if(!full.textContent){try{const r=await fetch('/api/challenge-doc');const d=await r.json();full.textContent=d.doc||'No document available'}catch(e){full.textContent='Failed to load'}}full.style.display='block';pre.style.display='none';_docExpanded=true}}
