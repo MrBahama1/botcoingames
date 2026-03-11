@@ -1,9 +1,7 @@
 """LLM credit monitoring and auto top-up via Bankr LLM Gateway."""
 
 import time
-import subprocess
-import re
-import json
+import httpx
 from config import LLM_CREDIT_CHECK_INTERVAL, LLM_CREDIT_THRESHOLD, LLM_TOPUP_AMOUNT
 
 
@@ -23,55 +21,56 @@ class CreditsMonitor:
         if self.ui:
             self.ui.log(msg)
 
+    def _get_api_key(self) -> str:
+        """Extract API key from the BankrClient."""
+        return self.bankr.client.headers.get("X-API-Key", "")
+
     def ensure_auto_topup(self):
         """Enable the gateway's built-in auto top-up. Best-effort — runs once."""
         if self._auto_topup_configured:
             return
         try:
-            result = subprocess.run(
-                ["bankr", "llm", "credits", "auto",
-                 "--enable",
-                 "--amount", str(self.topup_amount),
-                 "--threshold", str(self.threshold),
-                 "--tokens", "USDC"],
-                capture_output=True, text=True, timeout=30,
+            api_key = self._get_api_key()
+            if not api_key:
+                self._log("No API key — auto top-up not configured")
+                return
+            resp = httpx.post(
+                "https://api.bankr.bot/llm/credits/auto-topup",
+                headers={"X-API-Key": api_key, "Content-Type": "application/json"},
+                json={
+                    "enabled": True,
+                    "amountUsd": self.topup_amount,
+                    "thresholdUsd": self.threshold,
+                    "sourceToken": "USDC",
+                },
+                timeout=30,
             )
-            output = result.stdout + result.stderr
-            if result.returncode == 0 or "enable" in output.lower():
+            if resp.status_code < 400:
                 self._auto_topup_configured = True
                 self._auto_topup_enabled = True
                 self._log(f"Auto top-up enabled: ${self.topup_amount} when < ${self.threshold}")
             else:
-                self._log(f"Auto top-up config: {output[:120]}")
-        except FileNotFoundError:
-            self._log("bankr CLI not found — auto top-up not configured. Install: npm i -g @bankr/cli")
-        except subprocess.TimeoutExpired:
-            self._log("bankr CLI timed out configuring auto top-up")
+                self._log(f"Auto top-up config: {resp.text[:120]}")
         except Exception as e:
             self._log(f"Auto top-up config error: {e}")
 
     def get_balance(self) -> float:
-        """Check LLM credit balance via bankr CLI."""
+        """Check LLM credit balance via Bankr LLM Gateway API."""
+        api_key = self._get_api_key()
+        if not api_key:
+            return self._last_balance
         try:
-            result = subprocess.run(
-                ["bankr", "llm", "credits"],
-                capture_output=True, text=True, timeout=15,
+            resp = httpx.get(
+                "https://llm.bankr.bot/v1/credits",
+                headers={"X-API-Key": api_key},
+                timeout=15,
             )
-            output = result.stdout + result.stderr
-            m = re.search(r'\$?([\d.]+)', output)
-            if m:
-                self._last_balance = float(m.group(1))
-                return self._last_balance
-        except (subprocess.TimeoutExpired, FileNotFoundError):
-            pass
-
-        # Fallback: Bankr REST API balance check
-        try:
-            resp = self.bankr.prompt_and_poll("what are my LLM credits?", timeout=30)
-            m = re.search(r'\$?([\d.]+)', resp)
-            if m:
-                self._last_balance = float(m.group(1))
-                return self._last_balance
+            if resp.status_code < 400:
+                data = resp.json()
+                bal = data.get("balanceUsd", -1)
+                if isinstance(bal, (int, float)):
+                    self._last_balance = float(bal)
+                    return self._last_balance
         except Exception:
             pass
 
@@ -105,38 +104,24 @@ class CreditsMonitor:
         return balance
 
     def _do_topup(self) -> bool:
-        """Top up LLM credits. Returns True if command succeeded."""
-        # Method 1: bankr CLI direct top-up
+        """Top up LLM credits via Bankr API. Returns True if succeeded."""
+        api_key = self._get_api_key()
+        if not api_key:
+            self._log("No API key — cannot top up")
+            return False
         try:
-            result = subprocess.run(
-                ["bankr", "llm", "credits", "add",
-                 str(self.topup_amount), "--token", "USDC", "-y"],
-                capture_output=True, text=True, timeout=90,
+            resp = httpx.post(
+                "https://api.bankr.bot/llm/credits/topup",
+                headers={"X-API-Key": api_key, "Content-Type": "application/json"},
+                json={"amountUsd": self.topup_amount, "sourceToken": "USDC"},
+                timeout=90,
             )
-            output = result.stdout + result.stderr
-            if result.returncode == 0:
+            if resp.status_code < 400:
                 self._log(f"Topped up ${self.topup_amount} LLM credits")
                 return True
-            self._log(f"Top-up CLI: {output[:150]}")
-        except FileNotFoundError:
-            pass
-        except subprocess.TimeoutExpired:
-            self._log("Top-up CLI timed out")
+            self._log(f"Top-up failed ({resp.status_code}): {resp.text[:150]}")
         except Exception as e:
             self._log(f"Top-up error: {e}")
-
-        # Method 2: Bankr REST API prompt
-        try:
-            resp = self.bankr.prompt_and_poll(
-                f"add ${self.topup_amount} to my LLM credits using USDC",
-                timeout=120,
-            )
-            if "success" in resp.lower() or "added" in resp.lower() or "credit" in resp.lower():
-                self._log(f"Top-up via API: {resp[:100]}")
-                return True
-            self._log(f"Top-up response: {resp[:150]}")
-        except Exception as e:
-            self._log(f"Top-up API error: {e}")
 
         return False
 

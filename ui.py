@@ -1463,15 +1463,20 @@ class MinerUI:
         @app.route("/api/setup/llm-credits")
         @auth
         def setup_llm_credits():
-            try:
-                import subprocess
-                result = subprocess.run(["bankr", "llm", "credits"],
-                    capture_output=True, text=True, timeout=15)
-                m = re.search(r'\$?([\d.]+)', result.stdout + result.stderr)
-                if m:
-                    return jsonify({"balance": float(m.group(1))})
-            except Exception:
-                pass
+            session_id = g.session_id
+            api_key = sessions.get_api_key(session_id)
+            if api_key:
+                try:
+                    import httpx
+                    resp = httpx.get("https://llm.bankr.bot/v1/credits",
+                                     headers={"X-API-Key": api_key}, timeout=15)
+                    if resp.status_code < 400:
+                        data = resp.json()
+                        bal = data.get("balanceUsd", -1)
+                        if isinstance(bal, (int, float)):
+                            return jsonify({"balance": bal})
+                except Exception:
+                    pass
             return jsonify({"balance": -1})
 
         @app.route("/api/setup/finish", methods=["POST"])
