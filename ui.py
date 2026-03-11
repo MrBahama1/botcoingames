@@ -442,6 +442,16 @@ input:focus,select:focus{border-color:var(--accent)}
           </div>
         </div>
       </div>
+      <div style="text-align:center;margin-top:14px"><a href="#" onclick="toggleApiKey();return false" style="color:var(--dim);font-size:12px;text-decoration:underline dotted;text-underline-offset:3px" id="apiKeyToggle">Or use an existing API key</a></div>
+      <div id="apiKeySection" class="otp-reveal">
+        <label>API Key</label>
+        <div class="input-group">
+          <div class="input-icon" style="font-size:14px">&#128273;</div>
+          <input type="password" id="apiKeyInput" placeholder="bk_..." style="font-family:var(--mono);font-size:13px">
+          <button class="btn btn-green btn-sm" onclick="connectApiKey()">Connect</button>
+        </div>
+        <div style="font-size:11px;color:var(--dim);margin-top:6px">Get a key at <a href="https://bankr.bot/api" target="_blank" style="color:var(--accent)">bankr.bot/api</a> &mdash; enable Agent API &amp; LLM Gateway, turn off Read-Only</div>
+      </div>
       <div class="login-legal">By continuing you accept our <a href="/terms" target="_blank">Terms</a> &amp; <a href="/privacy" target="_blank">Privacy Policy</a></div>
     </div>
     <div id="step1Status"></div>
@@ -564,6 +574,16 @@ function showStatus(elId,cls,msg){const el=document.getElementById(elId);if(!msg
 function goStep(n){document.getElementById('step'+currentStep).classList.remove('active');currentStep=n;document.getElementById('step'+n).classList.add('active');updateProgress();if(n===3)loadWallet();if(n===4)checkStake();if(n===5)loadLLMCredits()}
 function confirmBankrConfig(){showStatus('step2Status','');goStep(3)}
 
+function toggleApiKey(){const s=document.getElementById('apiKeySection');s.classList.toggle('show');const t=document.getElementById('apiKeyToggle');t.textContent=s.classList.contains('show')?'Use email login instead':'Or use an existing API key'}
+async function connectApiKey(){
+  const key=document.getElementById('apiKeyInput').value.trim();
+  if(!key||!key.startsWith('bk_')){showStatus('step1Status','err','Enter a valid API key (starts with bk_)');return}
+  showStatus('step1Status','info','<span class="spinner"></span> Connecting...');
+  const r=await fetch('/api/setup/connect',H('POST',{api_key:key}));
+  const d=await r.json();
+  if(d.ok){updateCSRF(d.csrf_token);showStatus('step1Status','ok','Connected!');setTimeout(()=>goStep(2),500)}
+  else showStatus('step1Status','err',d.error||'Failed')
+}
 let _privyAppId='',_privyClientId='';
 async function sendOtp(){
   const email=document.getElementById('emailInput').value.trim();
@@ -581,8 +601,8 @@ async function verifyOtp(){
   showStatus('step1Status','info','<span class="spinner"></span> Verifying...');
   const r=await fetch('/api/setup/verify-otp',H('POST',{email,code,privy_app_id:_privyAppId,privy_client_id:_privyClientId}));
   const d=await r.json();
-  if(d.ok){updateCSRF(d.csrf_token);showStatus('step1Status','ok','Account created!');setTimeout(()=>goStep(2),500)}
-  else if(d.setup_guide){document.getElementById('step1Status').innerHTML='<div class="status ok" style="margin-bottom:8px">Account verified!</div><div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;font-size:13px"><div style="font-weight:600;margin-bottom:10px">Complete these steps to finish setup:</div><ol style="margin:0;padding-left:20px;line-height:2;color:var(--text)"><li>Go to <a href="https://bankr.bot/api" target="_blank" style="color:var(--accent);font-weight:600">bankr.bot/api</a></li><li>Log in with this same email</li><li>Click <strong>Create API Key</strong></li><li>Enable <strong>Agent API</strong> and <strong>LLM Gateway</strong></li><li>Toggle <strong>Read-Only</strong> off</li><li>Come back here and log in again</li></ol></div>'}
+  if(d.ok){updateCSRF(d.csrf_token);showStatus('step1Status','ok','Connected!');setTimeout(()=>goStep(2),500)}
+  else if(d.need_api_key){showStatus('step1Status','info','Account verified! Paste your API key from <a href="https://bankr.bot/api" target="_blank" style="color:var(--accent);font-weight:600">bankr.bot/api</a> to continue.');document.getElementById('apiKeySection').classList.add('show');document.getElementById('apiKeyToggle').style.display='none'}
   else showStatus('step1Status','err',d.error||'Failed')
 }
 async function loadWallet(){
@@ -1346,33 +1366,14 @@ class MinerUI:
                     if key_resp.status_code < 400:
                         key_data = key_resp.json()
                         api_key = key_data.get("apiKey", "")
+                    elif key_resp.status_code == 400:
+                        # Key limit reached or name collision — user already has keys
+                        print(f"[verify-otp] Key generation failed (400), prompting for existing key")
+                        return jsonify({"ok": False, "need_api_key": True})
                 except Exception as e:
                     print(f"[verify-otp] Bankr key generation error: {e}")
 
-            # Fallback to CLI if HTTP flow didn't produce a key
-            if not api_key:
-                try:
-                    import subprocess, os
-                    import re as _re
-                    result = subprocess.run(
-                        ["bankr", "login", "email", "--", email, "--code", code,
-                         "--accept-terms", "--key-name", "BOTCOIN Miner", "--read-write"],
-                        capture_output=True, text=True, timeout=120,
-                        stdin=subprocess.DEVNULL,
-                        env={**os.environ, "CI": "1", "NONINTERACTIVE": "1"})
-                    output = result.stdout + result.stderr
-                    key_match = _re.search(r'(bk_[A-Za-z0-9]+)', output)
-                    if key_match:
-                        api_key = key_match.group(1)
-                    if not api_key and result.returncode == 0:
-                        config_path = os.path.expanduser("~/.bankr/config.json")
-                        try:
-                            with open(config_path) as f:
-                                api_key = json.load(f).get("apiKey", "")
-                        except Exception:
-                            pass
-                except Exception:
-                    pass
+            # No CLI fallback — avoid creating extra API keys
 
             if api_key:
                 session_id = sessions.create_session(api_key)
