@@ -20,7 +20,7 @@ from config import AVAILABLE_MODELS, STAKE_AMOUNTS
 from session_manager import SessionManager
 from mining_manager import MiningManager
 from auth import (
-    require_auth, csrf_protect, validate_api_key, validate_email,
+    require_auth, csrf_protect, validate_email,
     validate_otp, sanitize_log
 )
 
@@ -183,7 +183,7 @@ input:focus,select:focus{border-color:var(--accent)}
 <!-- Step 1: Connect -->
 <div class="step active" id="step1">
   <div class="step-header"><span class="step-num">1</span><span class="step-title">Log in to Bankr</span></div>
-  <p class="step-desc">Sign up or log in with your email. Your wallet is created automatically. <a href="https://bankr.bot/" target="_blank">What is Bankr?</a></p>
+  <p class="step-desc">Sign up or log in with your email. Your wallet is created automatically.<br><a href="https://bankr.bot/" target="_blank">What is Bankr?</a></p>
   <div class="step-body">
     <label>Email Address</label>
     <div class="row">
@@ -199,17 +199,6 @@ input:focus,select:focus{border-color:var(--accent)}
       <p class="terms">By verifying you accept the <a href="https://bankr.bot/terms" target="_blank">Terms of Service</a></p>
     </div>
     <div id="step1Status"></div>
-    <div id="advancedSection" style="margin-top:20px;text-align:center">
-      <a href="#" onclick="document.getElementById('apiKeySection').style.display='block';this.style.display='none';return false" style="font-size:11px;color:var(--muted)">Advanced: connect with API key</a>
-    </div>
-    <div id="apiKeySection" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
-      <label>Bankr API Key</label>
-      <div class="row">
-        <input type="password" id="apiKeyInput" placeholder="bk_..." autocomplete="off">
-        <button class="btn btn-ghost btn-sm" onclick="submitApiKey()">Connect</button>
-      </div>
-      <p class="terms" style="margin-top:6px">Get a key at <a href="https://bankr.bot/api" target="_blank">bankr.bot/api</a></p>
-    </div>
   </div>
 </div>
 
@@ -293,15 +282,6 @@ updateProgress();
 function showStatus(elId,cls,msg){document.getElementById(elId).innerHTML='<div class="status '+cls+'">'+msg+'</div>'}
 function goStep(n){document.getElementById('step'+currentStep).classList.remove('active');currentStep=n;document.getElementById('step'+n).classList.add('active');updateProgress();if(n===2)loadWallet();if(n===3)checkStake();if(n===4)loadLLMCredits()}
 
-async function submitApiKey(){
-  const key=document.getElementById('apiKeyInput').value.trim();
-  if(!key||!key.startsWith('bk_')){showStatus('step1Status','err','Invalid API key format (must start with bk_)');return}
-  showStatus('step1Status','info','<span class="spinner"></span> Connecting...');
-  const r=await fetch('/api/setup/connect',H('POST',{api_key:key}));
-  const d=await r.json();
-  if(d.ok){updateCSRF(d.csrf_token);showStatus('step1Status','ok','Connected!');setTimeout(()=>goStep(2),500)}
-  else showStatus('step1Status','err',d.error||'Invalid key')
-}
 async function sendOtp(){
   const email=document.getElementById('emailInput').value.trim();
   if(!email||!email.includes('@')){showStatus('step1Status','err','Enter a valid email');return}
@@ -742,37 +722,6 @@ class MinerUI:
                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
         # --- Setup API endpoints ---
-        @app.route("/api/setup/connect", methods=["POST"])
-        def setup_connect():
-            ip = request.remote_addr or "unknown"
-            if not _check_rate_limit(f"connect:{ip}", 5, 60):
-                return jsonify({"ok": False, "error": "Too many attempts. Try again in a minute."}), 429
-
-            body = request.get_json(silent=True) or {}
-            api_key = body.get("api_key", "").strip()
-            if not api_key or not validate_api_key(api_key):
-                return jsonify({"ok": False, "error": "Invalid API key format (must start with bk_)"})
-            try:
-                from bankr_client import BankrClient
-                bankr = BankrClient(api_key)
-                me = bankr.get_me()
-                wallets = me.get("wallets", [])
-                if not wallets:
-                    return jsonify({"ok": False, "error": "No wallets found"})
-
-                # Create session with encrypted API key
-                session_id = sessions.create_session(api_key)
-                state = self._create_state(session_id)
-                csrf_token = sessions.get_csrf_token(session_id)
-
-                resp = jsonify({"ok": True, "csrf_token": csrf_token})
-                resp.set_cookie("session_id", session_id,
-                                httponly=True, samesite="Strict", max_age=86400,
-                                secure=request.is_secure)
-                return resp
-            except Exception:
-                return jsonify({"ok": False, "error": "Connection failed. Check your API key and try again."})
-
         @app.route("/api/setup/send-otp", methods=["POST"])
         def setup_send_otp():
             body = request.get_json(silent=True) or {}
