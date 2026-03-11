@@ -1084,6 +1084,17 @@ class MinerUI:
             if not _check_rate_limit(f"otp:{ip}", 3, 60):
                 return jsonify({"ok": False, "error": "Too many attempts. Try again in a minute."}), 429
 
+            # Try HTTP API first (works on all platforms)
+            try:
+                import httpx
+                resp = httpx.post("https://api.bankr.bot/auth/otp/send",
+                                  json={"email": email}, timeout=15)
+                if resp.status_code < 400:
+                    return jsonify({"ok": True})
+            except Exception:
+                pass
+
+            # Fallback to CLI
             try:
                 import subprocess
                 result = subprocess.run(["bankr", "login", "email", "--", email],
@@ -1091,19 +1102,10 @@ class MinerUI:
                 output = result.stdout + result.stderr
                 if result.returncode == 0 or "code" in output.lower() or "sent" in output.lower():
                     return jsonify({"ok": True})
-                return jsonify({"ok": False, "error": "Failed to send code. Please try again."})
-            except FileNotFoundError:
-                try:
-                    import httpx
-                    resp = httpx.post("https://api.bankr.bot/auth/otp/send",
-                                      json={"email": email}, timeout=15)
-                    if resp.status_code < 400:
-                        return jsonify({"ok": True})
-                    return jsonify({"ok": False, "error": "Failed to send code. Please try again."})
-                except Exception:
-                    return jsonify({"ok": False, "error": "Bankr CLI not installed. Install: npm i -g @bankr/cli"})
             except Exception:
-                return jsonify({"ok": False, "error": "Failed to send code. Please try again."})
+                pass
+
+            return jsonify({"ok": False, "error": "Failed to send code. Please try again."})
 
         @app.route("/api/setup/verify-otp", methods=["POST"])
         def setup_verify_otp():
@@ -1121,47 +1123,73 @@ class MinerUI:
 
             import subprocess, os
             import re as _re
+            api_key = None
+
+            # Try HTTP API first (works on all platforms including Railway)
             try:
-                result = subprocess.run(
-                    ["bankr", "login", "email", "--", email, "--code", code,
-                     "--accept-terms", "--key-name", "BOTCOIN Miner", "--read-write"],
-                    capture_output=True, text=True, timeout=120,
-                    stdin=subprocess.DEVNULL,
-                    env={**os.environ, "CI": "1", "NONINTERACTIVE": "1"})
-                output = result.stdout + result.stderr
-                api_key = None
-                key_match = _re.search(r'(bk_[A-Za-z0-9]+)', output)
-                if key_match:
-                    api_key = key_match.group(1)
-
-                # If CLI succeeded but key not in output, read from config
-                # (bankr login updates config with the correct key on success)
-                if not api_key and result.returncode == 0:
-                    config_path = os.path.expanduser("~/.bankr/config.json")
-                    try:
-                        with open(config_path) as f:
-                            api_key = json.load(f).get("apiKey", "")
-                    except Exception:
-                        pass
-
-                if api_key:
-                    session_id = sessions.create_session(api_key)
-                    state = self._create_state(session_id)
-                    csrf_token = sessions.get_csrf_token(session_id)
-                    resp = jsonify({"ok": True, "csrf_token": csrf_token})
-                    resp.set_cookie("session_id", session_id,
-                                    httponly=True, samesite="Strict", max_age=86400,
-                                    secure=request.is_secure)
-                    return resp
-                if result.returncode == 0:
-                    return jsonify({"ok": False, "setup_guide": True, "error": "Account verified! Complete these steps to finish setup:"})
-                return jsonify({"ok": False, "error": "Verification failed. Check the code and try again."})
-            except subprocess.TimeoutExpired:
-                return jsonify({"ok": False, "error": "Verification timed out. Please try again."})
-            except FileNotFoundError:
-                return jsonify({"ok": False, "error": "Bankr CLI not installed. Install: npm i -g @bankr/cli"})
+                import httpx
+                resp = httpx.post("https://api.bankr.bot/auth/otp/verify",
+                                  json={"email": email, "code": code,
+                                        "acceptTerms": True,
+                                        "keyName": "BOTCOIN Miner",
+                                        "readWrite": True},
+                                  timeout=30)
+                if resp.status_code < 400:
+                    data = resp.json()
+                    api_key = data.get("apiKey") or data.get("api_key") or data.get("key", "")
+                    # Check nested response shapes
+                    if not api_key and isinstance(data.get("data"), dict):
+                        api_key = data["data"].get("apiKey") or data["data"].get("api_key", "")
+                    if not api_key:
+                        key_match = _re.search(r'(bk_[A-Za-z0-9]+)', resp.text)
+                        if key_match:
+                            api_key = key_match.group(1)
             except Exception:
-                return jsonify({"ok": False, "error": "Verification failed. Please try again."})
+                pass
+
+            # Fallback to CLI if HTTP didn't get a key
+            if not api_key:
+                try:
+                    result = subprocess.run(
+                        ["bankr", "login", "email", "--", email, "--code", code,
+                         "--accept-terms", "--key-name", "BOTCOIN Miner", "--read-write"],
+                        capture_output=True, text=True, timeout=120,
+                        stdin=subprocess.DEVNULL,
+                        env={**os.environ, "CI": "1", "NONINTERACTIVE": "1"})
+                    output = result.stdout + result.stderr
+                    key_match = _re.search(r'(bk_[A-Za-z0-9]+)', output)
+                    if key_match:
+                        api_key = key_match.group(1)
+
+                    # If CLI succeeded but key not in output, read from config
+                    if not api_key and result.returncode == 0:
+                        config_path = os.path.expanduser("~/.bankr/config.json")
+                        try:
+                            with open(config_path) as f:
+                                api_key = json.load(f).get("apiKey", "")
+                        except Exception:
+                            pass
+
+                    if not api_key and result.returncode == 0:
+                        return jsonify({"ok": False, "setup_guide": True, "error": "Account verified! Complete these steps to finish setup:"})
+                except subprocess.TimeoutExpired:
+                    return jsonify({"ok": False, "error": "Verification timed out. Please try again."})
+                except FileNotFoundError:
+                    pass
+                except Exception:
+                    pass
+
+            if api_key:
+                session_id = sessions.create_session(api_key)
+                state = self._create_state(session_id)
+                csrf_token = sessions.get_csrf_token(session_id)
+                resp = jsonify({"ok": True, "csrf_token": csrf_token})
+                resp.set_cookie("session_id", session_id,
+                                httponly=True, samesite="Strict", max_age=86400,
+                                secure=request.is_secure)
+                return resp
+
+            return jsonify({"ok": False, "error": "Verification failed. Check the code and try again."})
 
         # --- Authenticated setup endpoints ---
         @app.route("/api/setup/wallet")
