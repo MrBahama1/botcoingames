@@ -857,6 +857,23 @@ DASHBOARD_HTML = r"""<!DOCTYPE html>
         <div class="stat"><div class="stat-label">ETH (gas) <a href="https://app.across.to/bridge-and-swap" target="_blank" style="font-size:9px">&#8599;</a></div><div class="stat-value" id="sEth" style="font-size:16px">--</div></div>
       </div>
     </div>
+    <div class="card" style="flex-shrink:0">
+      <div class="card-title">Rewards <span id="claimCount" style="font-size:10px;color:var(--green);font-weight:400;text-transform:none;letter-spacing:0"></span></div>
+      <div id="claimSection">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div style="font-size:12px;color:var(--dim)">Auto-claim <input type="checkbox" id="autoClaimToggle" checked onchange="toggleAutoClaim()" style="margin-left:6px;accent-color:var(--green)"></div>
+          <button class="btn btn-ghost btn-sm" style="padding:4px 10px;font-size:11px" onclick="checkClaims()">Check Now</button>
+        </div>
+        <div id="claimList" style="font-size:12px;color:var(--muted)">Checking for rewards...</div>
+        <div id="claimActions" style="display:none;margin-top:8px">
+          <button class="btn btn-green btn-sm" style="width:100%" onclick="claimAll()">Claim All</button>
+        </div>
+        <div style="margin-top:8px;display:flex;justify-content:space-between;font-size:11px;color:var(--dim)">
+          <span>Epochs mined: <strong style="color:var(--text)" id="minedEpochCount">0</strong></span>
+          <span>Total claimed: <strong style="color:var(--green)" id="totalClaimed">0</strong></span>
+        </div>
+      </div>
+    </div>
     <div class="card" style="flex:1;display:flex;flex-direction:column;overflow:hidden">
       <div class="card-title">Transactions</div>
       <div class="tx-list" id="txList"><div style="color:var(--muted);font-size:12px;padding:8px 0">No transactions yet</div></div>
@@ -977,6 +994,14 @@ function update(d){
   // Toast on tx status change
   txs.forEach(tx=>{const prev=prevTxMap[tx.id];if(prev==='pending'&&tx.status==='confirmed')toast(tx.description+' confirmed!',true);if(prev==='pending'&&tx.status==='failed')toast(tx.description+' failed',false)});
   prevTxMap={};txs.forEach(tx=>prevTxMap[tx.id]=tx.status);
+  // Claims
+  const ac=document.getElementById('autoClaimToggle');if(ac)ac.checked=!!d.auto_claim;
+  document.getElementById('minedEpochCount').textContent=d.mined_epochs?d.mined_epochs.length:0;
+  document.getElementById('totalClaimed').textContent=d.total_claimed||0;
+  const cl=d.claimable_epochs||[];const clEl=document.getElementById('claimList');const clAct=document.getElementById('claimActions');const clCnt=document.getElementById('claimCount');
+  if(cl.length>0){clCnt.textContent='('+cl.length+' available)';
+    clEl.innerHTML=cl.map(e=>{let txt='Epoch '+e.epochId+': '+e.credits+' credit'+(e.credits>1?'s':'');if(e.bonus)txt+=' <span style="color:var(--yellow)">+ BONUS</span>';return'<div style="padding:3px 0;color:var(--text);font-size:12px">'+txt+'</div>'}).join('');
+    clAct.style.display='block'}else{clCnt.textContent='';clEl.innerHTML='<div style="color:var(--muted);font-size:12px">No rewards to claim</div>';clAct.style.display='none'}
 }
 
 // Controls — all use CSRF header
@@ -1024,6 +1049,10 @@ async function dashSend(){
 }
 async function doLogout(){if(!confirm('Stop mining and logout?'))return;await fetch('/api/logout',H('POST'));window.location.href='/'}
 function copyWallet(){if(!fullWalletAddr)return;navigator.clipboard.writeText(fullWalletAddr).then(()=>{const tip=document.getElementById('copyTip');tip.classList.add('show');setTimeout(()=>tip.classList.remove('show'),1500)})}
+
+async function toggleAutoClaim(){const v=document.getElementById('autoClaimToggle').checked;await fetch('/api/auto-claim',H('POST',{enabled:v}))}
+async function checkClaims(){const r=await fetch('/api/check-claims',H('POST'));const d=await r.json();if(d.ok)toast('Checking for rewards...',true);else toast(d.error||'Check failed',false)}
+async function claimAll(){if(!confirm('Claim all available rewards?'))return;const r=await fetch('/api/claim-all',H('POST'));const d=await r.json();if(d.ok)toast('Claiming rewards...',true);else toast(d.error||'Claim failed',false)}
 
 connectSSE();
 fetch('/api/refresh-staking');
@@ -1802,6 +1831,97 @@ class MinerUI:
                 return jsonify({"ok": True, "staked": staked})
             except Exception:
                 return jsonify({"ok": False, "error": "Failed to refresh staking info."})
+
+        @app.route("/api/auto-claim", methods=["POST"])
+        @auth
+        @csrf
+        def toggle_auto_claim():
+            session_id = g.session_id
+            state = self._get_state(session_id)
+            if not state:
+                return jsonify({"ok": False, "error": "No session"}), 401
+            body = request.get_json(silent=True) or {}
+            state.auto_claim = bool(body.get("enabled", True))
+            state.bump()
+            state.log(f"Auto-claim {'ON' if state.auto_claim else 'OFF'}")
+            return jsonify({"ok": True, "auto_claim": state.auto_claim})
+
+        @app.route("/api/check-claims", methods=["POST"])
+        @auth
+        @csrf
+        def check_claims():
+            session_id = g.session_id
+            state = self._get_state(session_id)
+            api_key = sessions.get_api_key(session_id)
+            miner = state.miner_address if state else ""
+            if not api_key or not miner:
+                return jsonify({"ok": False, "error": "Not connected"})
+            # Trigger a claim check in background
+            def _check():
+                try:
+                    from bankr_client import BankrClient
+                    from coordinator_client import CoordinatorClient
+                    from claims import ClaimChecker
+                    bankr = BankrClient(api_key)
+                    coord = CoordinatorClient(miner)
+                    coord.ensure_auth(bankr)
+
+                    class MiniUI:
+                        def log(self, msg):
+                            state.log(msg)
+                        def set_phase(self, p):
+                            pass
+                        def update(self):
+                            state.bump()
+
+                    checker = ClaimChecker(coord, bankr, state, MiniUI())
+                    checker._check_claims()
+                except Exception as e:
+                    state.log(f"Claim check failed: {e}")
+
+            import threading
+            threading.Thread(target=_check, daemon=True).start()
+            return jsonify({"ok": True})
+
+        @app.route("/api/claim-all", methods=["POST"])
+        @auth
+        @csrf
+        def claim_all():
+            session_id = g.session_id
+            state = self._get_state(session_id)
+            api_key = sessions.get_api_key(session_id)
+            miner = state.miner_address if state else ""
+            if not api_key or not miner:
+                return jsonify({"ok": False, "error": "Not connected"})
+            claimable = state.claimable_epochs
+            if not claimable:
+                return jsonify({"ok": False, "error": "No rewards to claim"})
+            # Claim in background
+            def _claim():
+                try:
+                    from bankr_client import BankrClient
+                    from coordinator_client import CoordinatorClient
+                    from claims import ClaimChecker
+                    bankr = BankrClient(api_key)
+                    coord = CoordinatorClient(miner)
+                    coord.ensure_auth(bankr)
+
+                    class MiniUI:
+                        def log(self, msg):
+                            state.log(msg)
+                        def set_phase(self, p):
+                            pass
+                        def update(self):
+                            state.bump()
+
+                    checker = ClaimChecker(coord, bankr, state, MiniUI())
+                    checker._do_claim(list(claimable))
+                except Exception as e:
+                    state.log(f"Manual claim failed: {e}")
+
+            import threading
+            threading.Thread(target=_claim, daemon=True).start()
+            return jsonify({"ok": True})
 
         @app.route("/api/logout", methods=["POST"])
         @auth

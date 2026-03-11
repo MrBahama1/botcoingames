@@ -102,10 +102,13 @@ class CoordinatorClient:
         return with_retry(lambda: self.client.get("/v1/epoch"))
 
     def get_credits(self) -> dict:
-        """Get miner's credited solves."""
-        return with_retry(lambda: self.client.get(
-            f"/v1/credits?miner={self.miner}"
-        ))
+        """Get miner's credited solves. Rate-limited to 1/hour per address."""
+        # Don't retry on 429 — this endpoint has a 1-hour rate limit
+        resp = self.client.get(f"/v1/credits?miner={self.miner}")
+        if resp.status_code < 400:
+            return resp.json()
+        from retry import HTTPError
+        raise HTTPError(resp.status_code, resp.text)
 
     def get_stake_approve_calldata(self, amount_wei: str) -> dict:
         return with_retry(lambda: self.client.get(
@@ -120,7 +123,22 @@ class CoordinatorClient:
     def get_claim_calldata(self, epochs: list) -> dict:
         epoch_str = ",".join(str(e) for e in epochs)
         return with_retry(lambda: self.client.get(
-            f"/v1/claim-calldata?epochs={epoch_str}"
+            f"/v1/claim-calldata?epochs={epoch_str}",
+            headers=self._auth_headers(),
+        ))
+
+    def get_bonus_status(self, epochs: list) -> dict:
+        epoch_str = ",".join(str(e) for e in epochs)
+        return with_retry(lambda: self.client.get(
+            f"/v1/bonus/status?epochs={epoch_str}",
+            headers=self._auth_headers(),
+        ))
+
+    def get_bonus_claim_calldata(self, epochs: list) -> dict:
+        epoch_str = ",".join(str(e) for e in epochs)
+        return with_retry(lambda: self.client.get(
+            f"/v1/bonus/claim-calldata?epochs={epoch_str}",
+            headers=self._auth_headers(),
         ))
 
     def get_unstake_calldata(self) -> dict:

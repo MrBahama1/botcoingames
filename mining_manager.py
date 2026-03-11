@@ -200,6 +200,12 @@ def _run_mining(api_key, model, state, auto_topup, topup_amount, topup_threshold
     except Exception:
         pass
 
+    # Start claim checker
+    from claims import ClaimChecker
+    claim_checker = ClaimChecker(coordinator, bankr, state, ui)
+    claim_checker.start()
+    ui.log(f"Auto-claim: {'ON' if state.auto_claim else 'OFF'}")
+
     ui.log("Starting mining loop...")
 
     loop = MiningLoop(coordinator, bankr, llm, credits_monitor, ui)

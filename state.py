@@ -60,6 +60,13 @@ class MinerState:
     # Pending transactions
     pending_transactions: list = field(default_factory=list)
 
+    # Claims
+    auto_claim: bool = True
+    mined_epochs: set = field(default_factory=set)  # epoch IDs we earned credits in
+    claimable_epochs: list = field(default_factory=list)  # [{epochId, credits, claimable, bonus}]
+    last_claim_check: float = 0.0
+    total_claimed: int = 0
+
     def log(self, msg: str):
         ts = time.strftime("%H:%M:%S")
         clean = _KEY_PATTERN.sub('bk_***', msg)
@@ -156,4 +163,8 @@ class MinerState:
                 "withdrawable_at": self.withdrawable_at,
                 "unstake_cooldown_remaining": cooldown_left,
                 "pending_transactions": list(self.pending_transactions),
+                "auto_claim": self.auto_claim,
+                "mined_epochs": sorted(self.mined_epochs),
+                "claimable_epochs": list(self.claimable_epochs),
+                "total_claimed": self.total_claimed,
             }

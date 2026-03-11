@@ -52,7 +52,7 @@ class LLMClient:
                 timeout=300.0,
             )
 
-    def solve(self, system_prompt: str, user_prompt: str, max_tokens: int = 8192) -> str:
+    def solve(self, system_prompt: str, user_prompt: str, max_tokens: int = 16384) -> str:
         """Send challenge to LLM and return raw response text."""
         if self._anthropic_client:
             return self._solve_anthropic(system_prompt, user_prompt, max_tokens)
@@ -70,7 +70,7 @@ class LLMClient:
                     max_tokens=max_tokens,
                     system=system_prompt,
                     messages=[{"role": "user", "content": user_prompt}],
-                    temperature=0.3,
+                    temperature=0.2,
                 )
                 return response.content[0].text.strip()
             except anthropic.RateLimitError as e:
@@ -104,7 +104,7 @@ class LLMClient:
                         {"role": "user", "content": user_prompt},
                     ],
                     max_tokens=max_tokens,
-                    temperature=0.3,
+                    temperature=0.2,
                 )
                 return response.choices[0].message.content.strip()
             except RateLimitError as e:

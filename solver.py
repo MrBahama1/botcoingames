@@ -15,17 +15,17 @@ def build_prompt(challenge: dict) -> tuple:
     solve_instructions = challenge.get("solveInstructions", "")
 
     system_prompt = (
-        "You are an expert analyst solving a hybrid NLP challenge. "
-        "You will read a document about fictional companies and answer questions, "
-        "then produce a single-line artifact satisfying all constraints exactly. "
-        "You must be extremely precise with word counts, acrostics, arithmetic, "
-        "and forbidden characters."
+        "You are an expert analyst solving a hybrid NLP challenge about fictional companies. "
+        "You must reason carefully through each question and constraint, then produce a single-line artifact. "
+        "Be extremely precise: exact word counts, correct acrostic letters, valid arithmetic, "
+        "forbidden character avoidance, and correct company/person/city names from the document. "
+        "Show your full reasoning, then output the final artifact inside <ARTIFACT> tags."
     )
 
     user_prompt = f"""## DOCUMENT
 {doc}
 
-## COMPANIES (valid answer names)
+## COMPANIES (valid answer names — answers MUST match one of these exactly)
 {', '.join(companies)}
 
 ## QUESTIONS
@@ -33,7 +33,7 @@ def build_prompt(challenge: dict) -> tuple:
     for i, q in enumerate(questions):
         user_prompt += f"Q{i+1}: {q}\n"
 
-    user_prompt += "\n## CONSTRAINTS\n"
+    user_prompt += "\n## CONSTRAINTS (ALL must be satisfied)\n"
     for i, c in enumerate(constraints):
         user_prompt += f"C{i+1}: {c}\n"
 
@@ -41,26 +41,78 @@ def build_prompt(challenge: dict) -> tuple:
         user_prompt += f"\n## SOLVE INSTRUCTIONS\n{solve_instructions}\n"
 
     user_prompt += """
-## APPROACH
-1. Extract ALL company data: founding year, public/private, quarterly revenue + growth, D/E, satisfaction, employees, CEO, HQ city/country, sector.
-2. Watch for abbreviation collisions (two companies sharing the same initials).
-3. Distinguish counterfactual/hypothetical statements from actual data.
-4. Answer each question methodically, showing which companies qualify.
-5. Derive constraint values: acrostic letters, forbidden letter check, nextPrime, modular arithmetic equation, required names/cities/countries.
-6. Build the artifact satisfying ALL constraints.
-7. Self-verify: count words, check acrostic, check forbidden letter, verify equation arithmetic.
+## SOLVING METHODOLOGY (follow these steps carefully)
 
-Your response must be exactly one line — the artifact string and nothing else. Do NOT output "Q1:", "Looking at", "Let me", "First", "Answer:", or any reasoning. Do NOT explain your process. Output ONLY the single-line artifact that satisfies all constraints. No preamble. No JSON. Just the artifact."""
+### Step 1: Data Extraction
+For EVERY company in the document, extract into a structured table:
+- Full name + any abbreviations/aliases used in the text
+- Founded year, public/private status
+- ALL quarterly revenues (Q1-Q4) and growth rates — compute total annual revenue
+- Debt-to-equity ratio, customer satisfaction score
+- Employee count, CEO name, HQ city and country, sector
+
+### Step 2: Identify Red Herrings
+- IGNORE hypothetical/counterfactual statements ("if they had...", "would have been...", "could potentially...")
+- IGNORE speculative projections — only use stated factual data
+- Watch for abbreviation collisions — two companies may share initials; use the FULL company name from the companies list
+
+### Step 3: Answer Questions
+For each question, show your work:
+- List ALL qualifying companies with their relevant data
+- Perform explicit calculations (sums, comparisons, rankings)
+- Double-check your answer matches a name in the companies list EXACTLY
+
+### Step 4: Parse Constraints
+Analyze each constraint to determine what the artifact needs:
+- **Word count**: Exactly N words (spaces separate words)
+- **Acrostic**: First letters of first N words must spell a specific sequence
+- **Forbidden letter**: The artifact must NOT contain a specific letter (case-insensitive)
+- **Equation A+B=C**: Must include a valid arithmetic equation using specific numbers
+- **nextPrime(N)**: Find the smallest prime > N
+- **Modular arithmetic**: Compute N mod M correctly
+- **Required content**: Specific names, cities, countries, or values must appear
+
+### Step 5: Build the Artifact
+Construct a single line that satisfies ALL constraints simultaneously.
+- Start with the acrostic words (first letters must spell the required sequence)
+- Embed required names, values, equations
+- Avoid the forbidden letter in EVERY word
+- Hit the exact word count (count by splitting on spaces)
+
+### Step 6: Self-Verify (CRITICAL)
+Before outputting, verify EACH constraint:
+1. Count words by splitting on single spaces — must match exactly
+2. Check acrostic by taking first letter of each of the first N words
+3. Search for the forbidden letter (case-insensitive) — must NOT appear anywhere
+4. Verify equation arithmetic: A + B must actually equal C
+5. Confirm all required names/cities/values are present and spelled correctly
+
+If ANY check fails, rebuild the artifact and verify again.
+
+### Step 7: Output
+After all verification passes, output the final artifact inside tags:
+
+<ARTIFACT>your single-line artifact here</ARTIFACT>
+
+The artifact must be exactly one line with no line breaks."""
 
     return system_prompt, user_prompt
 
 
 def extract_artifact(raw_response: str) -> str:
-    """Extract the artifact from LLM response — take last non-empty line."""
+    """Extract the artifact from LLM response — look for <ARTIFACT> tags first, then last line."""
+    # Try to extract from <ARTIFACT> tags
+    match = re.search(r'<ARTIFACT>(.*?)</ARTIFACT>', raw_response, re.DOTALL)
+    if match:
+        artifact = match.group(1).strip()
+        # Remove any line breaks within the artifact
+        artifact = ' '.join(artifact.split())
+        return artifact
+
+    # Fallback: take last non-empty line
     lines = [l.strip() for l in raw_response.strip().split("\n") if l.strip()]
     if not lines:
         return raw_response.strip()
-    # Prefer the last non-empty line (model sometimes prepends reasoning)
     return lines[-1]
 
 

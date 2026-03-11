@@ -147,7 +147,7 @@ class MiningLoop:
             solve_time = time.time() - start_t
 
         artifact = extract_artifact(raw_response)
-        state.llm_output = f"Solve time: {solve_time:.1f}s\n\n{raw_response[:2000]}"
+        state.llm_output = f"Solve time: {solve_time:.1f}s\n\n{raw_response[:4000]}"
         state.solve_artifact = artifact
         state.solve_time = solve_time
         state.bump()
@@ -202,6 +202,7 @@ class MiningLoop:
             state.solve_passed = "pass"
             state.solve_failed_constraints = []
             state.bump()
+            state.mined_epochs.add(epoch_id)
             self.ui.log(f"PASS! Credits earned: {credits_per_solve}")
 
             # 7. Post receipt on-chain
