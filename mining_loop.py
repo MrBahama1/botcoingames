@@ -77,10 +77,12 @@ class MiningLoop:
                 self.coordinator.authenticate(self.bankr)
                 challenge = self.coordinator.get_challenge(nonce)
             elif e.status == 403:
-                self.ui.log("403 — Not eligible to mine. Check the following:")
-                self.ui.log("  1. Stake >= 25M BOTCOIN (use Manage Stake on dashboard)")
-                self.ui.log("  2. Top up LLM credits at bankr.bot/llm")
-                self.ui.log("  3. Ensure ETH on Base for gas")
+                self.ui.log(f"403 — Not eligible to mine: {e.body[:300]}")
+                self.ui.log(f"  Miner address: {self.coordinator.miner}")
+                staked = self.coordinator.get_staked_amount()
+                eligible = self.coordinator.is_eligible()
+                self.ui.log(f"  On-chain stake: {staked:,.0f} BOTCOIN, eligible: {eligible}")
+                self.ui.log("  If stake is correct, try re-authenticating or check coordinator status.")
                 self.ui.log("Mining paused. Fix the issue, then click Start.")
                 state.mining_active = False
                 state.bump()
