@@ -103,6 +103,7 @@ LEGAL_CSS = """
 .legal a{color:var(--accent)}
 .legal .back{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--dim);margin-bottom:24px}
 .legal .back:hover{color:var(--accent)}
+@media(max-width:480px){.legal{padding:30px 16px 50px}.legal h1{font-size:22px}.legal h2{font-size:15px}}
 """
 
 TERMS_HTML = """<!DOCTYPE html>
@@ -292,6 +293,7 @@ LANDING_HTML = """<!DOCTYPE html>
 .f1 .icon{background:rgba(0,212,255,0.12);color:var(--accent)}
 .f2 .icon{background:rgba(0,230,118,0.12);color:var(--green)}
 .f3 .icon{background:rgba(123,47,255,0.12);color:var(--accent2)}
+@media(max-width:480px){.hero{padding:60px 16px 40px}.hero h1{font-size:36px;letter-spacing:-1px}.hero p{font-size:15px}.hero .cta{flex-direction:column;align-items:center}.features{padding:10px 16px 40px}}
 </style></head><body>
 <div class="landing">
   <div class="hero">
@@ -357,6 +359,7 @@ input:focus,select:focus{border-color:var(--accent)}
 .tier-card:hover{border-color:var(--accent);background:rgba(0,212,255,0.04)}
 .tier-card .amt{font-size:18px;font-weight:700}.tier-card .cr{font-size:11px;color:var(--dim);margin-top:2px}
 .t1 .amt{color:var(--accent)}.t2 .amt{color:var(--green)}.t3 .amt{color:var(--accent2)}
+@media(max-width:480px){.container{padding:24px 14px 40px}.tier-cards{grid-template-columns:1fr}.row{flex-direction:column;gap:6px}.row input,.row button{width:100%}}
 </style></head><body>
 <div class="container">
 <div class="logo"><span class="grad-text">BOTCOIN</span> MINER</div>
@@ -642,7 +645,16 @@ DASHBOARD_HTML = r"""<!DOCTYPE html>
 .toast{padding:12px 18px;border-radius:var(--radius-sm);font-size:13px;font-weight:500;animation:slideIn .3s ease-out;min-width:260px;box-shadow:0 8px 30px rgba(0,0,0,.4)}
 .toast-ok{background:rgba(0,230,118,0.15);color:var(--green);border:1px solid rgba(0,230,118,0.2)}
 .toast-err{background:rgba(255,71,87,0.15);color:var(--red);border:1px solid rgba(255,71,87,0.2)}
-@media(max-width:900px){.grid{grid-template-columns:1fr;grid-template-rows:auto auto auto auto auto auto 260px}.stake-panel{grid-row:auto}.log-panel{grid-column:auto}.challenge-panel{grid-column:auto}.llm-panel{grid-column:auto}}
+@media(max-width:900px){
+.header{flex-direction:column;gap:10px;padding:10px 14px}
+.header-left{flex-wrap:wrap;justify-content:center}
+.controls{flex-wrap:wrap;justify-content:center}
+.grid{grid-template-columns:1fr;grid-template-rows:auto;height:auto;padding:10px 12px;gap:10px}
+.stake-panel{grid-row:auto}.log-panel{grid-column:auto}.challenge-panel{grid-column:auto}.llm-panel{grid-column:auto}
+.stats-grid{grid-template-columns:repeat(2,1fr)}
+.stats-area{order:-1}
+.log-content{max-height:300px}.llm-content{max-height:400px}.challenge-content{max-height:350px}
+}
 </style></head><body>
 <div class="header">
   <div class="header-left">
