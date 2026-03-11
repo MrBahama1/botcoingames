@@ -531,18 +531,23 @@ input:focus,select:focus{border-color:var(--accent)}
 <!-- Step 5: LLM -->
 <div class="step" id="step5">
   <div class="step-header"><span class="step-num">5</span><span class="step-title">LLM Configuration</span></div>
-  <p class="step-desc">Pick your solver model. Free options use your Claude subscription; paid options use LLM credits.</p>
+  <p class="step-desc">Pick your solver model. Subscription models use your Claude plan; credit models use Bankr LLM Gateway.</p>
   <div class="step-body">
     <label>Model</label>
     <select id="modelSetupSelect" onchange="onModelSetupChange()">MODELOPTIONS</select>
     <div id="claudeCodeInfo" style="margin-top:12px;padding:14px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);display:none">
-      <div style="font-size:13px;font-weight:600;color:var(--green);margin-bottom:6px">Free with Claude Subscription</div>
-      <div style="font-size:12px;color:var(--dim);line-height:1.5">
-        Uses the <code style="color:var(--accent)">claude</code> CLI on this machine. Requires:<br>
-        1. <a href="https://claude.ai/pricing" target="_blank" style="color:var(--accent)">Claude Max/Pro subscription</a><br>
-        2. Claude Code installed: <code style="color:var(--text);background:var(--bg-card);padding:2px 6px;border-radius:4px">npm install -g @anthropic-ai/claude-code</code><br>
-        3. Run the dashboard locally (<code style="color:var(--text)">python app.py</code>)<br>
-        <span style="color:var(--yellow);margin-top:4px;display:inline-block">Note: Claude Code models only work when running locally, not on hosted deployments.</span>
+      <div style="font-size:13px;font-weight:600;color:var(--accent);margin-bottom:8px">Requires Local Setup</div>
+      <div style="font-size:12px;color:var(--dim);line-height:1.7">
+        Subscription models use the <code style="color:var(--accent)">claude</code> CLI installed on your machine. No per-solve cost &mdash; included in your Claude plan.<br><br>
+        <span style="font-weight:600;color:var(--text)">Setup (one time):</span><br>
+        <span style="color:var(--text)">1.</span> Get a <a href="https://claude.ai/pricing" target="_blank" style="color:var(--accent)">Claude Max or Pro subscription</a><br>
+        <span style="color:var(--text)">2.</span> Install Claude Code:<br>
+        <code style="color:var(--text);background:var(--bg-card);padding:3px 8px;border-radius:4px;display:inline-block;margin:4px 0 4px 16px;font-size:11px">npm install -g @anthropic-ai/claude-code</code><br>
+        <span style="color:var(--text)">3.</span> Clone and run locally:<br>
+        <code style="color:var(--text);background:var(--bg-card);padding:3px 8px;border-radius:4px;display:inline-block;margin:4px 0 4px 16px;font-size:11px">git clone https://github.com/MrBahama1/botcoingames.git && cd botcoingames</code><br>
+        <code style="color:var(--text);background:var(--bg-card);padding:3px 8px;border-radius:4px;display:inline-block;margin:4px 0 4px 16px;font-size:11px">python -m venv venv && source venv/bin/activate && pip install -r requirements.txt</code><br>
+        <code style="color:var(--text);background:var(--bg-card);padding:3px 8px;border-radius:4px;display:inline-block;margin:4px 0 4px 16px;font-size:11px">python main.py</code><br><br>
+        <span style="color:var(--yellow)">&#9888; Only works when running this dashboard on your own computer. Will not work on the hosted site.</span>
       </div>
     </div>
     <div id="creditsSection">
@@ -782,6 +787,10 @@ DASHBOARD_HTML = r"""<!DOCTYPE html>
     <button class="btn btn-ghost btn-sm" onclick="doLogout()">Logout</button>
   </div>
 </div>
+<div id="localBanner" style="display:none;padding:8px 24px;background:linear-gradient(90deg,#1a1a2e,#16213e);border-bottom:1px solid var(--border);font-size:12px;color:var(--dim)">
+  <span style="color:var(--accent)">&#9888;</span> <strong style="color:var(--text)">Subscription model selected</strong> &mdash; requires running locally with Claude Code CLI installed.
+  <a href="https://github.com/MrBahama1/botcoingames#local-setup" target="_blank" style="color:var(--accent);margin-left:6px">Setup guide &rarr;</a>
+</div>
 <div class="grid">
   <!-- Left: Staking -->
   <div class="stake-panel">
@@ -972,10 +981,10 @@ function update(d){
   document.getElementById('sCredits').textContent=d.total_credits;
   document.getElementById('sEpoch').textContent=d.epoch_id||'--';
   document.getElementById('sUptime').textContent=d.uptime;
-  const isCC=d.model&&d.model.startsWith('claude-code-');document.getElementById('sLLM').textContent=isCC?'Free (CLI)':d.llm_credits>=0?'$'+d.llm_credits.toFixed(2):'--';document.getElementById('sLLM').style.color=isCC?'var(--green)':'var(--yellow)';
+  const isCC=d.model&&d.model.startsWith('claude-code-');document.getElementById('sLLM').textContent=isCC?'Subscription':d.llm_credits>=0?'$'+d.llm_credits.toFixed(2):'--';document.getElementById('sLLM').style.color=isCC?'var(--text)':'var(--yellow)';document.getElementById('localBanner').style.display=isCC?'block':'none';if(d.model)document.getElementById('modelSelect').value=d.model;
   const ethEl=document.getElementById('sEth');if(d.eth_balance>0){ethEl.textContent=parseFloat(d.eth_balance).toFixed(5);ethEl.style.color=d.eth_balance<0.001?'var(--red)':'var(--text)'}else{ethEl.textContent='--'}
   // LLM output
-  if(d.llm_output)document.getElementById('llmOutput').textContent=d.llm_output;
+  if(d.llm_output){const lo=document.getElementById('llmOutput');lo.textContent=d.llm_output;lo.scrollTop=lo.scrollHeight}
   // Result badge + artifact
   const rb=document.getElementById('resultBadge'),as=document.getElementById('artifactSection'),at=document.getElementById('artifactText'),vi=document.getElementById('verifyIssues');
   if(d.solve_passed==='pass'){rb.innerHTML='<span class="result-badge pass">PASS</span>';rb.style.display='inline'}
@@ -1045,7 +1054,9 @@ function update(d){
 // Controls — all use CSRF header
 document.getElementById('btnStart').addEventListener('click',()=>fetch('/api/control',H('POST',{action:'start'})));
 document.getElementById('btnStop').addEventListener('click',()=>fetch('/api/control',H('POST',{action:'stop'})));
-document.getElementById('modelSelect').addEventListener('change',e=>fetch('/api/model',H('POST',{model:e.target.value})));
+document.getElementById('modelSelect').addEventListener('change',e=>{fetch('/api/model',H('POST',{model:e.target.value}));document.getElementById('localBanner').style.display=e.target.value.startsWith('claude-code-')?'block':'none'});
+// Show banner on load if subscription model selected
+if(document.getElementById('modelSelect').value.startsWith('claude-code-'))document.getElementById('localBanner').style.display='block';
 
 async function dashStake(amt){
   document.getElementById('stakeStatus').innerHTML='<span class="spinner"></span> Staking...';
@@ -1173,7 +1184,7 @@ class MinerUI:
                 free.append(opt)
             else:
                 paid.append(opt)
-        opts = '<optgroup label="Free (Claude Code CLI)">\n'
+        opts = '<optgroup label="Claude Subscription (local only)">\n'
         opts += "\n".join(free)
         opts += '\n</optgroup>\n<optgroup label="Paid (LLM Credits)">\n'
         opts += "\n".join(paid)

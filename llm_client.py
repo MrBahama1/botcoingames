@@ -59,16 +59,22 @@ class LLMClient:
                 timeout=300.0,
             )
 
-    def solve(self, system_prompt: str, user_prompt: str, max_tokens: int = 16384) -> str:
-        """Send challenge to LLM and return raw response text."""
+    def solve(self, system_prompt: str, user_prompt: str, max_tokens: int = 16384,
+              on_stream=None) -> str:
+        """Send challenge to LLM and return raw response text.
+
+        Args:
+            on_stream: Optional callback(text_so_far) called as output streams in.
+        """
         if self.provider == PROVIDER_CLAUDE_CODE:
-            return self._solve_claude_code(system_prompt, user_prompt)
+            return self._solve_claude_code(system_prompt, user_prompt, on_stream)
         if self._anthropic_client:
             return self._solve_anthropic(system_prompt, user_prompt, max_tokens)
         return self._solve_openai(system_prompt, user_prompt, max_tokens)
 
-    def _solve_claude_code(self, system_prompt: str, user_prompt: str) -> str:
-        """Solve via Claude Code CLI subprocess (uses Claude Max subscription)."""
+    def _solve_claude_code(self, system_prompt: str, user_prompt: str,
+                           on_stream=None) -> str:
+        """Solve via Claude Code CLI subprocess."""
         cli_model = CLAUDE_CODE_MODEL_MAP.get(self.model, "sonnet")
         full_prompt = f"{system_prompt}\n\n{user_prompt}"
 
@@ -77,6 +83,9 @@ class LLMClient:
 
         for attempt in range(2):
             try:
+                if on_stream:
+                    on_stream("[Claude Code is thinking...]")
+
                 result = subprocess.run(
                     ["claude", "-p", "--model", cli_model, "--output-format", "text"],
                     input=full_prompt,
@@ -85,18 +94,24 @@ class LLMClient:
                     timeout=300,
                     env=env,
                 )
+                stderr = result.stderr.strip()
                 if result.returncode != 0:
-                    stderr = result.stderr.strip()
-                    if "rate" in stderr.lower() or "429" in stderr:
+                    if "rate" in stderr.lower() or "429" in stderr or "rate_limit" in stderr.lower():
+                        if on_stream:
+                            on_stream(f"[Rate limited (attempt {attempt+1}), waiting 30s...]")
                         time.sleep(30 * (attempt + 1))
                         continue
                     raise RuntimeError(f"Claude Code CLI failed (exit {result.returncode}): {stderr[:500]}")
                 output = result.stdout.strip()
                 if not output:
-                    raise RuntimeError("Claude Code CLI returned empty output")
+                    raise RuntimeError(f"Claude Code CLI returned empty output. stderr: {stderr[:300]}")
+                if on_stream:
+                    on_stream(output[:4000])
                 return output
             except subprocess.TimeoutExpired:
                 if attempt == 0:
+                    if on_stream:
+                        on_stream("[Timed out, retrying...]")
                     continue
                 raise RuntimeError("Claude Code CLI timed out after 5 minutes (twice)")
             except FileNotFoundError:

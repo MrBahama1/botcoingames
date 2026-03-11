@@ -134,9 +134,20 @@ class MiningLoop:
 
         system_prompt, user_prompt = build_prompt(challenge)
 
+        # Stream LLM output live to dashboard (throttled to ~2 updates/sec)
+        _last_stream_t = [0.0]
+        def _on_stream(text_so_far):
+            now = time.time()
+            if now - _last_stream_t[0] < 0.5:
+                return
+            _last_stream_t[0] = now
+            elapsed = now - start_t
+            state.llm_output = f"Solving... {elapsed:.0f}s\n\n{text_so_far[:4000]}"
+            state.bump()
+
         try:
             start_t = time.time()
-            raw_response = self.llm.solve(system_prompt, user_prompt)
+            raw_response = self.llm.solve(system_prompt, user_prompt, on_stream=_on_stream)
             solve_time = time.time() - start_t
         except CreditsExhaustedError:
             self.ui.log("LLM credits exhausted! Attempting top-up...")
@@ -149,7 +160,7 @@ class MiningLoop:
             # Retry once after top-up
             self.ui.log(f"Credits now ${new_bal:.2f} — retrying solve...")
             start_t = time.time()
-            raw_response = self.llm.solve(system_prompt, user_prompt)
+            raw_response = self.llm.solve(system_prompt, user_prompt, on_stream=_on_stream)
             solve_time = time.time() - start_t
 
         artifact = extract_artifact(raw_response)

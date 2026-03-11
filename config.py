@@ -23,17 +23,17 @@ BACKOFF_SCHEDULE = [2, 4, 8, 16, 30, 60]
 MAX_CONSECUTIVE_FAILS = 5
 
 AVAILABLE_MODELS = [
-    # Free — uses your Claude subscription via Claude Code CLI (local only)
-    ("claude-code-sonnet", "Claude Sonnet 4.6 — Free (Claude Code)"),
-    ("claude-code-opus", "Claude Opus 4.6 — Free (Claude Code)"),
-    # Paid — uses Bankr LLM Gateway credits
-    ("claude-sonnet-4-6", "Claude Sonnet 4.6 (credits)"),
-    ("claude-haiku-4-5-20251001", "Claude Haiku 4.5 (credits, cheaper)"),
-    ("claude-opus-4-6", "Claude Opus 4.6 (credits, expensive)"),
-    ("gemini-2.5-flash", "Gemini 2.5 Flash (credits)"),
-    ("gpt-4.1", "GPT-4.1 (credits)"),
+    # Claude Subscription — uses Claude Code CLI (requires local setup)
+    ("claude-code-opus", "Claude Opus 4.6 — Subscription (local)"),
+    ("claude-code-sonnet", "Claude Sonnet 4.6 — Subscription (local)"),
+    # LLM Credits — uses Bankr LLM Gateway (works hosted or local)
+    ("claude-sonnet-4-6", "Claude Sonnet 4.6 — Credits"),
+    ("claude-haiku-4-5-20251001", "Claude Haiku 4.5 — Credits (cheaper)"),
+    ("claude-opus-4-6", "Claude Opus 4.6 — Credits (expensive)"),
+    ("gemini-2.5-flash", "Gemini 2.5 Flash — Credits"),
+    ("gpt-4.1", "GPT-4.1 — Credits"),
 ]
-DEFAULT_MODEL = "claude-code-sonnet"
+DEFAULT_MODEL = "claude-code-opus"
 
 # Map Claude Code model IDs to CLI model aliases
 CLAUDE_CODE_MODEL_MAP = {
