@@ -531,21 +531,33 @@ input:focus,select:focus{border-color:var(--accent)}
 <!-- Step 5: LLM -->
 <div class="step" id="step5">
   <div class="step-header"><span class="step-num">5</span><span class="step-title">LLM Configuration</span></div>
-  <p class="step-desc">Pick your solver model. LLM credits power inference — you need credits to mine.</p>
+  <p class="step-desc">Pick your solver model. Free options use your Claude subscription; paid options use LLM credits.</p>
   <div class="step-body">
     <label>Model</label>
-    <select id="modelSetupSelect">MODELOPTIONS</select>
-    <div class="info-box" style="margin-top:12px"><div class="lbl">LLM Gateway Credits</div><div class="val" id="llmCredits" style="color:var(--yellow)">Checking...</div></div>
-    <div id="llmTopupLink" style="display:none;margin-top:8px">
-      <a href="https://bankr.bot/llm?tab=credits" target="_blank" style="font-size:13px">Top up LLM credits &rarr;</a>
-      <span style="font-size:12px;color:var(--dim);display:block;margin-top:4px">New accounts start with $0. You need credits to mine.</span>
-      <button class="btn btn-ghost btn-sm" onclick="loadLLMCredits()" style="margin-top:8px">Refresh</button>
+    <select id="modelSetupSelect" onchange="onModelSetupChange()">MODELOPTIONS</select>
+    <div id="claudeCodeInfo" style="margin-top:12px;padding:14px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);display:none">
+      <div style="font-size:13px;font-weight:600;color:var(--green);margin-bottom:6px">Free with Claude Subscription</div>
+      <div style="font-size:12px;color:var(--dim);line-height:1.5">
+        Uses the <code style="color:var(--accent)">claude</code> CLI on this machine. Requires:<br>
+        1. <a href="https://claude.ai/pricing" target="_blank" style="color:var(--accent)">Claude Max/Pro subscription</a><br>
+        2. Claude Code installed: <code style="color:var(--text);background:var(--bg-card);padding:2px 6px;border-radius:4px">npm install -g @anthropic-ai/claude-code</code><br>
+        3. Run the dashboard locally (<code style="color:var(--text)">python app.py</code>)<br>
+        <span style="color:var(--yellow);margin-top:4px;display:inline-block">Note: Claude Code models only work when running locally, not on hosted deployments.</span>
+      </div>
     </div>
-    <div style="margin-top:16px;padding:14px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm)">
-      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:0;text-transform:none;font-size:13px;color:var(--text)">
-        <input type="checkbox" id="autoTopupCheck" style="width:16px;height:16px;accent-color:var(--accent)">
-        Enable auto top-up ($25 USDC when credits &lt; $5)
-      </label>
+    <div id="creditsSection">
+      <div class="info-box" style="margin-top:12px"><div class="lbl">LLM Gateway Credits</div><div class="val" id="llmCredits" style="color:var(--yellow)">Checking...</div></div>
+      <div id="llmTopupLink" style="display:none;margin-top:8px">
+        <a href="https://bankr.bot/llm?tab=credits" target="_blank" style="font-size:13px">Top up LLM credits &rarr;</a>
+        <span style="font-size:12px;color:var(--dim);display:block;margin-top:4px">New accounts start with $0. You need credits to mine.</span>
+        <button class="btn btn-ghost btn-sm" onclick="loadLLMCredits()" style="margin-top:8px">Refresh</button>
+      </div>
+      <div style="margin-top:16px;padding:14px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm)">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:0;text-transform:none;font-size:13px;color:var(--text)">
+          <input type="checkbox" id="autoTopupCheck" style="width:16px;height:16px;accent-color:var(--accent)">
+          Enable auto top-up ($25 USDC when credits &lt; $5)
+        </label>
+      </div>
     </div>
     <div id="step5Status"></div>
     <div style="display:flex;gap:8px;margin-top:16px">
@@ -569,6 +581,8 @@ let currentStep=1;
 function updateProgress(){const p=document.getElementById('progress');p.innerHTML='';for(let i=1;i<=5;i++){const cls=i<currentStep?'seg done':i===currentStep?'seg active':'seg';p.innerHTML+='<div class="'+cls+'"></div>'}}
 updateProgress();
 function showStatus(elId,cls,msg){const el=document.getElementById(elId);if(!msg){el.innerHTML='';return}el.innerHTML='<div class="status '+cls+'">'+msg+'</div>'}
+function onModelSetupChange(){const m=document.getElementById('modelSetupSelect').value;const isCC=m.startsWith('claude-code-');document.getElementById('claudeCodeInfo').style.display=isCC?'block':'none';document.getElementById('creditsSection').style.display=isCC?'none':'block'}
+onModelSetupChange();
 function goStep(n){document.getElementById('step'+currentStep).classList.remove('active');currentStep=n;document.getElementById('step'+n).classList.add('active');updateProgress();if(n===3)loadWallet();if(n===4)checkStake();if(n===5)loadLLMCredits()}
 function confirmBankrConfig(){showStatus('step2Status','');goStep(3)}
 
@@ -958,7 +972,7 @@ function update(d){
   document.getElementById('sCredits').textContent=d.total_credits;
   document.getElementById('sEpoch').textContent=d.epoch_id||'--';
   document.getElementById('sUptime').textContent=d.uptime;
-  document.getElementById('sLLM').textContent=d.llm_credits>=0?'$'+d.llm_credits.toFixed(2):'--';
+  const isCC=d.model&&d.model.startsWith('claude-code-');document.getElementById('sLLM').textContent=isCC?'Free (CLI)':d.llm_credits>=0?'$'+d.llm_credits.toFixed(2):'--';document.getElementById('sLLM').style.color=isCC?'var(--green)':'var(--yellow)';
   const ethEl=document.getElementById('sEth');if(d.eth_balance>0){ethEl.textContent=parseFloat(d.eth_balance).toFixed(5);ethEl.style.color=d.eth_balance<0.001?'var(--red)':'var(--text)'}else{ethEl.textContent='--'}
   // LLM output
   if(d.llm_output)document.getElementById('llmOutput').textContent=d.llm_output;
@@ -1150,10 +1164,20 @@ class MinerUI:
         return session_id, state
 
     def _model_options_html(self, current_model=""):
-        opts = ""
+        free = []
+        paid = []
         for mid, label in AVAILABLE_MODELS:
             sel = " selected" if mid == current_model else ""
-            opts += f'<option value="{mid}"{sel}>{label}</option>\n'
+            opt = f'<option value="{mid}"{sel}>{label}</option>'
+            if mid.startswith("claude-code-"):
+                free.append(opt)
+            else:
+                paid.append(opt)
+        opts = '<optgroup label="Free (Claude Code CLI)">\n'
+        opts += "\n".join(free)
+        opts += '\n</optgroup>\n<optgroup label="Paid (LLM Credits)">\n'
+        opts += "\n".join(paid)
+        opts += "\n</optgroup>\n"
         return opts
 
     def _make_secure_response(self, content, content_type="text/html", status=200):

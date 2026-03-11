@@ -4,7 +4,7 @@ import threading
 import time
 from bankr_client import BankrClient
 from coordinator_client import CoordinatorClient
-from llm_client import LLMClient
+from llm_client import LLMClient, PROVIDER_CLAUDE_CODE
 from credits_monitor import CreditsMonitor
 from mining_loop import MiningLoop
 from state import MinerState
@@ -124,10 +124,14 @@ def _run_mining(api_key, model, state, auto_topup, topup_amount, topup_threshold
 
     bankr = BankrClient(api_key)
     coordinator = CoordinatorClient(miner="")
+    is_claude_code = model.startswith("claude-code-")
     credits_monitor = CreditsMonitor(
         bankr, threshold=topup_threshold, topup_amount=topup_amount, ui=ui
     )
-    llm = LLMClient(api_key=api_key, model=model)
+    if is_claude_code:
+        llm = LLMClient(api_key=api_key, model=model, provider=PROVIDER_CLAUDE_CODE)
+    else:
+        llm = LLMClient(api_key=api_key, model=model)
 
     # Resolve wallet
     ui.log("Resolving wallet...")
@@ -164,21 +168,26 @@ def _run_mining(api_key, model, state, auto_topup, topup_amount, topup_threshold
         ui.log("WARNING: Not staked. Stake BOTCOIN from the dashboard to mine.")
     state.bump()
 
-    # Configure auto top-up only if user opted in
-    if auto_topup:
-        credits_monitor.ensure_auto_topup()
-    else:
-        ui.log("Auto top-up disabled. Top up manually at bankr.bot/llm if credits run low.")
-
-    # LLM credits check
-    ui.log("Checking LLM credits...")
-    credit_bal = credits_monitor.force_check()
-    if credit_bal >= 0:
-        state.llm_credits = credit_bal
+    if is_claude_code:
+        ui.log(f"Using Claude Code CLI ({model}) — no LLM credits needed.")
+        state.llm_credits = -1  # not applicable
         state.bump()
-        ui.log(f"LLM Credits: ${credit_bal:.2f}")
-    if credit_bal == 0:
-        ui.log("WARNING: $0 LLM credits. Top up at bankr.bot/llm — mining will fail without credits.")
+    else:
+        # Configure auto top-up only if user opted in
+        if auto_topup:
+            credits_monitor.ensure_auto_topup()
+        else:
+            ui.log("Auto top-up disabled. Top up manually at bankr.bot/llm if credits run low.")
+
+        # LLM credits check
+        ui.log("Checking LLM credits...")
+        credit_bal = credits_monitor.force_check()
+        if credit_bal >= 0:
+            state.llm_credits = credit_bal
+            state.bump()
+            ui.log(f"LLM Credits: ${credit_bal:.2f}")
+        if credit_bal == 0:
+            ui.log("WARNING: $0 LLM credits. Top up at bankr.bot/llm — mining will fail without credits.")
 
     # Auth with coordinator
     ui.log("Authenticating with coordinator...")

@@ -4,7 +4,7 @@ import time
 import secrets
 from config import RATE_LIMIT_SECONDS, MAX_CONSECUTIVE_FAILS
 from solver import build_prompt, extract_artifact, verify_artifact
-from llm_client import CreditsExhaustedError
+from llm_client import CreditsExhaustedError, PROVIDER_CLAUDE_CODE
 from retry import RetryExhausted, HTTPError
 
 
@@ -57,11 +57,12 @@ class MiningLoop:
             self.ui.log(f"Auth failed: {e}")
             raise
 
-        # 2. Check LLM credits
-        credit_bal = self.credits_monitor.check_and_topup()
-        if credit_bal >= 0:
-            state.llm_credits = credit_bal
-            self.ui.update()
+        # 2. Check LLM credits (skip for Claude Code — uses subscription)
+        if self.llm.provider != PROVIDER_CLAUDE_CODE:
+            credit_bal = self.credits_monitor.check_and_topup()
+            if credit_bal >= 0:
+                state.llm_credits = credit_bal
+                self.ui.update()
 
         # 3. Request challenge
         self.ui.set_phase("REQUESTING")
@@ -120,6 +121,11 @@ class MiningLoop:
         # 4. Solve via LLM (use current model from state in case user changed it)
         current_model = state.model
         if current_model and current_model != self.llm.model:
+            # Handle provider switch between Claude Code and API models
+            new_is_cc = current_model.startswith("claude-code-")
+            old_is_cc = self.llm.provider == PROVIDER_CLAUDE_CODE
+            if new_is_cc != old_is_cc:
+                self.llm.provider = PROVIDER_CLAUDE_CODE if new_is_cc else "bankr"
             self.llm.model = current_model
             self.ui.log(f"Switched to model: {current_model}")
 
