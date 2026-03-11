@@ -9,6 +9,7 @@ from retry import with_retry
 
 class BankrClient:
     def __init__(self, api_key: str):
+        self._api_key = api_key
         self.client = httpx.Client(
             base_url=BANKR_API_URL,
             headers={

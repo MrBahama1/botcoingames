@@ -852,9 +852,14 @@ DASHBOARD_HTML = r"""<!DOCTYPE html>
         <div id="claimActions" style="display:none;margin-top:8px">
           <button class="btn btn-green btn-sm" style="width:100%" onclick="claimAll()">Claim All</button>
         </div>
+        <div id="claimKeyNote" style="display:none;margin-top:8px;padding:8px 10px;border-radius:var(--radius-sm);background:rgba(255,193,7,0.06);border:1px solid rgba(255,193,7,0.12);font-size:11px;line-height:1.5">
+          <span style="color:var(--yellow);font-weight:600">Claiming requires unrestricted API key</span>
+          <div style="color:var(--dim);margin-top:3px">Disable "trusted recipients" on your key — Bankr can't verify recipients from calldata.</div>
+          <a href="https://bankr.bot/api" target="_blank" class="btn btn-yellow btn-sm" style="width:100%;margin-top:6px;text-decoration:none;font-size:11px">Edit Key at bankr.bot/api</a>
+        </div>
         <div style="margin-top:8px;display:flex;justify-content:space-between;font-size:11px;color:var(--dim)">
           <span>Epochs mined: <strong style="color:var(--text)" id="minedEpochCount">0</strong></span>
-          <span>Total claimed: <strong style="color:var(--green)" id="totalClaimed">0</strong></span>
+          <span>Claimed: <strong style="color:var(--green)" id="totalClaimed">0 epochs</strong></span>
         </div>
       </div>
     </div>
@@ -904,6 +909,24 @@ DASHBOARD_HTML = r"""<!DOCTYPE html>
   </div>
 </div>
 <div class="toast-container" id="toasts"></div>
+
+<!-- Agent Chat -->
+<button id="chatToggle" onclick="toggleChat()" style="position:fixed;bottom:20px;right:20px;z-index:900;width:48px;height:48px;border-radius:50%;background:var(--gradient);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(0,212,255,0.3);transition:transform .2s" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+</button>
+<div id="chatPanel" style="display:none;position:fixed;bottom:80px;right:20px;z-index:901;width:380px;max-height:520px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:0 12px 40px rgba(0,0,0,.5);display:none;flex-direction:column;overflow:hidden">
+  <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+    <div style="font-size:13px;font-weight:700"><span class="grad-text">Bankr</span> Agent</div>
+    <button onclick="toggleChat()" style="background:none;border:none;color:var(--dim);cursor:pointer;font-size:18px;line-height:1">&times;</button>
+  </div>
+  <div id="chatMessages" style="flex:1;overflow-y:auto;padding:12px 16px;display:flex;flex-direction:column;gap:10px;min-height:300px;max-height:380px">
+    <div style="font-size:12px;color:var(--dim);text-align:center;padding:20px 0">Ask your Bankr agent anything — check balances, swap tokens, bridge ETH, and more.</div>
+  </div>
+  <div style="padding:10px 12px;border-top:1px solid var(--border);display:flex;gap:8px">
+    <input type="text" id="chatInput" placeholder="e.g. What are my balances on base?" style="flex:1;padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);font-size:12px;font-family:var(--font);outline:none" onkeydown="if(event.key==='Enter')sendChat()">
+    <button class="btn btn-accent btn-sm" onclick="sendChat()" id="chatSendBtn" style="padding:8px 14px">Send</button>
+  </div>
+</div>
 
 <script>
 const PC=PHASECOLORSJS;
@@ -997,8 +1020,9 @@ function update(d){
   // Claims
   const ac=document.getElementById('autoClaimToggle');if(ac)ac.checked=!!d.auto_claim;
   document.getElementById('minedEpochCount').textContent=d.mined_epochs?d.mined_epochs.length:0;
-  document.getElementById('totalClaimed').textContent=d.total_claimed||0;
+  const tc=d.total_claimed||0;document.getElementById('totalClaimed').textContent=tc>0?tc+' epoch'+(tc>1?'s':''):'0 epochs';
   const cl=d.claimable_epochs||[];const clEl=document.getElementById('claimList');const clAct=document.getElementById('claimActions');const clCnt=document.getElementById('claimCount');
+  const ckn=document.getElementById('claimKeyNote');if(ckn){const hasErr=d.log_lines&&d.log_lines.some(l=>l.includes('Restricted API key')||l.includes('trusted recipient'));ckn.style.display=hasErr?'block':'none'}
   if(cl.length>0){clCnt.textContent='('+cl.length+' available)';
     clEl.innerHTML=cl.map(e=>{let txt='Epoch '+e.epochId+': '+e.credits+' credit'+(e.credits>1?'s':'');if(e.bonus)txt+=' <span style="color:var(--yellow)">+ BONUS</span>';return'<div style="padding:3px 0;color:var(--text);font-size:12px">'+txt+'</div>'}).join('');
     clAct.style.display='block'}else{clCnt.textContent='';clEl.innerHTML='<div style="color:var(--muted);font-size:12px">No rewards to claim</div>';clAct.style.display='none'}
@@ -1053,6 +1077,18 @@ function copyWallet(){if(!fullWalletAddr)return;navigator.clipboard.writeText(fu
 async function toggleAutoClaim(){const v=document.getElementById('autoClaimToggle').checked;await fetch('/api/auto-claim',H('POST',{enabled:v}))}
 async function checkClaims(){const r=await fetch('/api/check-claims',H('POST'));const d=await r.json();if(d.ok)toast('Checking for rewards...',true);else toast(d.error||'Check failed',false)}
 async function claimAll(){if(!confirm('Claim all available rewards?'))return;const r=await fetch('/api/claim-all',H('POST'));const d=await r.json();if(d.ok)toast('Claiming rewards...',true);else toast(d.error||'Claim failed',false)}
+
+// Agent Chat
+let _chatOpen=false,_chatThread='',_chatPolling=false;
+function toggleChat(){_chatOpen=!_chatOpen;const p=document.getElementById('chatPanel');p.style.display=_chatOpen?'flex':'none';if(_chatOpen)document.getElementById('chatInput').focus()}
+function addChatMsg(role,text){const c=document.getElementById('chatMessages');const d=document.createElement('div');d.style.cssText=role==='user'?'align-self:flex-end;background:rgba(0,212,255,0.1);border:1px solid rgba(0,212,255,0.15);border-radius:12px 12px 2px 12px;padding:8px 12px;max-width:85%;font-size:12px;line-height:1.5;color:var(--text)':'align-self:flex-start;background:var(--bg-elevated);border:1px solid var(--border);border-radius:12px 12px 12px 2px;padding:8px 12px;max-width:85%;font-size:12px;line-height:1.5;color:var(--text)';d.innerHTML=role==='typing'?'<span class="spinner" style="width:12px;height:12px"></span> <span style="color:var(--dim);font-size:11px">Thinking...</span>':esc(text).replace(/\n/g,'<br>');c.appendChild(d);c.scrollTop=c.scrollHeight;return d}
+async function sendChat(){const input=document.getElementById('chatInput');const msg=input.value.trim();if(!msg||_chatPolling)return;input.value='';addChatMsg('user',msg);const typing=addChatMsg('typing','');_chatPolling=true;document.getElementById('chatSendBtn').disabled=true;
+try{const body={message:msg};if(_chatThread)body.threadId=_chatThread;const r=await fetch('/api/chat',H('POST',body));const d=await r.json();if(!d.ok){typing.remove();addChatMsg('agent',d.error||'Failed to send');_chatPolling=false;document.getElementById('chatSendBtn').disabled=false;return}
+const jobId=d.jobId;if(d.threadId)_chatThread=d.threadId;
+// Poll for response
+let attempts=0;const poll=async()=>{if(attempts++>120){typing.remove();addChatMsg('agent','Request timed out.');_chatPolling=false;document.getElementById('chatSendBtn').disabled=false;return}
+const pr=await fetch('/api/chat/status?jobId='+jobId);const pd=await pr.json();if(pd.status==='completed'){typing.remove();addChatMsg('agent',pd.response||'(empty response)');if(pd.threadId)_chatThread=pd.threadId;_chatPolling=false;document.getElementById('chatSendBtn').disabled=false}else if(pd.status==='failed'||pd.status==='cancelled'){typing.remove();addChatMsg('agent','Request failed: '+(pd.error||pd.status));_chatPolling=false;document.getElementById('chatSendBtn').disabled=false}else{setTimeout(poll,2000)}};poll()
+}catch(e){typing.remove();addChatMsg('agent','Error: '+e.message);_chatPolling=false;document.getElementById('chatSendBtn').disabled=false}}
 
 connectSSE();
 fetch('/api/refresh-staking');
@@ -1831,6 +1867,68 @@ class MinerUI:
                 return jsonify({"ok": True, "staked": staked})
             except Exception:
                 return jsonify({"ok": False, "error": "Failed to refresh staking info."})
+
+        @app.route("/api/chat", methods=["POST"])
+        @auth
+        @csrf
+        def agent_chat():
+            session_id = g.session_id
+            api_key = sessions.get_api_key(session_id)
+            if not api_key:
+                return jsonify({"ok": False, "error": "Not connected"})
+            body = request.get_json(silent=True) or {}
+            msg = (body.get("message") or "").strip()
+            if not msg or len(msg) > 2000:
+                return jsonify({"ok": False, "error": "Invalid message"})
+            thread_id = body.get("threadId", "")
+            try:
+                import httpx
+                payload = {"prompt": msg}
+                if thread_id:
+                    payload["threadId"] = thread_id
+                resp = httpx.post(
+                    "https://api.bankr.bot/agent/prompt",
+                    json=payload,
+                    headers={"X-API-Key": api_key, "Content-Type": "application/json"},
+                    timeout=15,
+                )
+                data = resp.json()
+                if resp.status_code >= 400:
+                    return jsonify({"ok": False, "error": data.get("error", data.get("message", "Request failed"))})
+                return jsonify({
+                    "ok": True,
+                    "jobId": data.get("jobId", ""),
+                    "threadId": data.get("threadId", thread_id),
+                })
+            except Exception as e:
+                return jsonify({"ok": False, "error": str(e)})
+
+        @app.route("/api/chat/status")
+        @auth
+        def agent_chat_status():
+            session_id = g.session_id
+            api_key = sessions.get_api_key(session_id)
+            if not api_key:
+                return jsonify({"status": "failed", "error": "Not connected"})
+            job_id = request.args.get("jobId", "")
+            if not job_id:
+                return jsonify({"status": "failed", "error": "No job ID"})
+            try:
+                import httpx
+                resp = httpx.get(
+                    f"https://api.bankr.bot/agent/job/{job_id}",
+                    headers={"X-API-Key": api_key},
+                    timeout=10,
+                )
+                data = resp.json()
+                return jsonify({
+                    "status": data.get("status", "pending"),
+                    "response": data.get("response", ""),
+                    "threadId": data.get("threadId", ""),
+                    "error": data.get("error", ""),
+                })
+            except Exception as e:
+                return jsonify({"status": "failed", "error": str(e)})
 
         @app.route("/api/auto-claim", methods=["POST"])
         @auth

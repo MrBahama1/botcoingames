@@ -63,6 +63,7 @@ class MinerState:
     # Claims
     auto_claim: bool = True
     mined_epochs: set = field(default_factory=set)  # epoch IDs we earned credits in
+    claimed_epochs: set = field(default_factory=set)  # epoch IDs already claimed
     claimable_epochs: list = field(default_factory=list)  # [{epochId, credits, claimable, bonus}]
     last_claim_check: float = 0.0
     total_claimed: int = 0
