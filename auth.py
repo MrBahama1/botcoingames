@@ -52,8 +52,8 @@ def validate_api_key(key: str) -> bool:
 
 
 def validate_email(email: str) -> bool:
-    """Basic email format check."""
-    return bool(re.match(r'^[^@\s]+@[^@\s]+\.[^@\s]+$', email)) and len(email) < 255
+    """Email format check. Disallows leading hyphens to prevent CLI argument injection."""
+    return bool(re.match(r'^[a-zA-Z0-9][a-zA-Z0-9._%+\-]*@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$', email)) and len(email) < 255
 
 
 def validate_otp(code: str) -> bool:

@@ -174,10 +174,6 @@ input:focus,select:focus{border-color:var(--accent)}
 .tier-card:hover{border-color:var(--accent);background:rgba(0,212,255,0.04)}
 .tier-card .amt{font-size:18px;font-weight:700}.tier-card .cr{font-size:11px;color:var(--dim);margin-top:2px}
 .t1 .amt{color:var(--accent)}.t2 .amt{color:var(--green)}.t3 .amt{color:var(--accent2)}
-.tab-bar{display:flex;gap:0;margin-bottom:16px;border-bottom:1px solid var(--border)}
-.tab{padding:10px 20px;font-size:13px;font-weight:600;color:var(--dim);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s}
-.tab:hover{color:var(--text)}.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
-.tab-content{display:none}.tab-content.active{display:block}
 </style></head><body>
 <div class="container">
 <div class="logo"><span class="grad-text">BOTCOIN</span> MINER</div>
@@ -186,37 +182,34 @@ input:focus,select:focus{border-color:var(--accent)}
 
 <!-- Step 1: Connect -->
 <div class="step active" id="step1">
-  <div class="step-header"><span class="step-num">1</span><span class="step-title">Connect Bankr Account</span></div>
-  <p class="step-desc">Log in with your email or connect an existing API key. <a href="https://bankr.bot/" target="_blank">What is Bankr?</a></p>
+  <div class="step-header"><span class="step-num">1</span><span class="step-title">Log in to Bankr</span></div>
+  <p class="step-desc">Sign up or log in with your email. Your wallet is created automatically. <a href="https://bankr.bot/" target="_blank">What is Bankr?</a></p>
   <div class="step-body">
-    <div class="tab-bar">
-      <div class="tab active" onclick="switchTab('email')">Email (recommended)</div>
-      <div class="tab" onclick="switchTab('apikey')">API Key</div>
+    <label>Email Address</label>
+    <div class="row">
+      <input type="email" id="emailInput" placeholder="you@example.com">
+      <button class="btn btn-accent btn-sm" id="btnSendOtp" onclick="sendOtp()">Send Code</button>
     </div>
-    <div class="tab-content active" id="tab-email">
-      <label>Email Address</label>
+    <div id="otpSection" style="display:none;margin-top:12px">
+      <label>Verification Code</label>
       <div class="row">
-        <input type="email" id="emailInput" placeholder="you@example.com">
-        <button class="btn btn-accent btn-sm" id="btnSendOtp" onclick="sendOtp()">Send Code</button>
+        <input type="text" id="otpInput" placeholder="123456" maxlength="8">
+        <button class="btn btn-green btn-sm" onclick="verifyOtp()">Verify</button>
       </div>
-      <div id="otpSection" style="display:none;margin-top:12px">
-        <label>Verification Code</label>
-        <div class="row">
-          <input type="text" id="otpInput" placeholder="123456" maxlength="8">
-          <button class="btn btn-green btn-sm" onclick="verifyOtp()">Verify</button>
-        </div>
-        <p class="terms">By verifying you accept the <a href="https://bankr.bot/terms" target="_blank">Terms of Service</a></p>
-      </div>
+      <p class="terms">By verifying you accept the <a href="https://bankr.bot/terms" target="_blank">Terms of Service</a></p>
     </div>
-    <div class="tab-content" id="tab-apikey">
+    <div id="step1Status"></div>
+    <div id="advancedSection" style="margin-top:20px;text-align:center">
+      <a href="#" onclick="document.getElementById('apiKeySection').style.display='block';this.style.display='none';return false" style="font-size:11px;color:var(--muted)">Advanced: connect with API key</a>
+    </div>
+    <div id="apiKeySection" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
       <label>Bankr API Key</label>
       <div class="row">
         <input type="password" id="apiKeyInput" placeholder="bk_..." autocomplete="off">
-        <button class="btn btn-accent btn-sm" onclick="submitApiKey()">Connect</button>
+        <button class="btn btn-ghost btn-sm" onclick="submitApiKey()">Connect</button>
       </div>
-      <p class="terms" style="margin-top:12px">Get an API key at <a href="https://bankr.bot/api" target="_blank">bankr.bot/api</a></p>
+      <p class="terms" style="margin-top:6px">Get a key at <a href="https://bankr.bot/api" target="_blank">bankr.bot/api</a></p>
     </div>
-    <div id="step1Status"></div>
   </div>
 </div>
 
@@ -299,8 +292,6 @@ function updateProgress(){const p=document.getElementById('progress');p.innerHTM
 updateProgress();
 function showStatus(elId,cls,msg){document.getElementById(elId).innerHTML='<div class="status '+cls+'">'+msg+'</div>'}
 function goStep(n){document.getElementById('step'+currentStep).classList.remove('active');currentStep=n;document.getElementById('step'+n).classList.add('active');updateProgress();if(n===2)loadWallet();if(n===3)checkStake();if(n===4)loadLLMCredits()}
-
-function switchTab(t){document.querySelectorAll('.tab').forEach(el=>el.classList.remove('active'));document.querySelectorAll('.tab-content').forEach(el=>el.classList.remove('active'));if(t==='email'){document.querySelectorAll('.tab')[0].classList.add('active');document.getElementById('tab-email').classList.add('active')}else{document.querySelectorAll('.tab')[1].classList.add('active');document.getElementById('tab-apikey').classList.add('active')}}
 
 async function submitApiKey(){
   const key=document.getElementById('apiKeyInput').value.trim();
@@ -575,7 +566,8 @@ function update(d){
   else{txEl.innerHTML=txs.map(tx=>{
     const cls='tx-item tx-'+tx.status;
     const icon=tx.status==='pending'?'<span class="spinner" style="width:12px;height:12px"></span>':tx.status==='confirmed'?'&#10003;':'&#10007;';
-    const hash=tx.tx_hash?'<a href="https://basescan.org/tx/'+tx.tx_hash+'" target="_blank" style="font-size:10px;color:var(--dim)">view</a>':'';
+    const validHash=tx.tx_hash&&/^0x[a-fA-F0-9]{64}$/.test(tx.tx_hash);
+    const hash=validHash?'<a href="https://basescan.org/tx/'+tx.tx_hash+'" target="_blank" style="font-size:10px;color:var(--dim)">view</a>':'';
     return'<div class="'+cls+'"><div class="tx-icon">'+icon+'</div><div class="tx-desc">'+esc(tx.description)+' '+hash+'</div><div class="tx-time">'+ago(tx.timestamp)+'</div></div>'
   }).join('')}
   // Toast on tx status change
@@ -778,8 +770,8 @@ class MinerUI:
                                 httponly=True, samesite="Strict", max_age=86400,
                                 secure=request.is_secure)
                 return resp
-            except Exception as e:
-                return jsonify({"ok": False, "error": sanitize_log(str(e)[:200])})
+            except Exception:
+                return jsonify({"ok": False, "error": "Connection failed. Check your API key and try again."})
 
         @app.route("/api/setup/send-otp", methods=["POST"])
         def setup_send_otp():
@@ -794,12 +786,12 @@ class MinerUI:
 
             try:
                 import subprocess
-                result = subprocess.run(["bankr", "login", "email", email],
+                result = subprocess.run(["bankr", "login", "email", "--", email],
                     capture_output=True, text=True, timeout=30)
                 output = result.stdout + result.stderr
                 if result.returncode == 0 or "code" in output.lower() or "sent" in output.lower():
                     return jsonify({"ok": True})
-                return jsonify({"ok": False, "error": sanitize_log(output[:200])})
+                return jsonify({"ok": False, "error": "Failed to send code. Please try again."})
             except FileNotFoundError:
                 try:
                     import httpx
@@ -807,11 +799,11 @@ class MinerUI:
                                       json={"email": email}, timeout=15)
                     if resp.status_code < 400:
                         return jsonify({"ok": True})
-                    return jsonify({"ok": False, "error": resp.text[:200]})
-                except Exception as e:
-                    return jsonify({"ok": False, "error": f"Install bankr CLI: npm i -g @bankr/cli. {sanitize_log(str(e))}"})
-            except Exception as e:
-                return jsonify({"ok": False, "error": sanitize_log(str(e)[:200])})
+                    return jsonify({"ok": False, "error": "Failed to send code. Please try again."})
+                except Exception:
+                    return jsonify({"ok": False, "error": "Bankr CLI not installed. Install: npm i -g @bankr/cli"})
+            except Exception:
+                return jsonify({"ok": False, "error": "Failed to send code. Please try again."})
 
         @app.route("/api/setup/verify-otp", methods=["POST"])
         def setup_verify_otp():
@@ -831,7 +823,7 @@ class MinerUI:
             import re as _re
             try:
                 result = subprocess.run(
-                    ["bankr", "login", "email", email, "--code", code,
+                    ["bankr", "login", "email", "--", email, "--code", code,
                      "--accept-terms", "--key-name", "BOTCOIN Miner", "--read-write"],
                     capture_output=True, text=True, timeout=120,
                     stdin=subprocess.DEVNULL,
@@ -860,7 +852,7 @@ class MinerUI:
                     return resp
                 if result.returncode == 0:
                     return jsonify({"ok": False, "error": "Login ok but no key found. Paste from bankr.bot/api."})
-                return jsonify({"ok": False, "error": f"CLI: {sanitize_log(output[:250])}"})
+                return jsonify({"ok": False, "error": "Verification failed. Check the code and try again."})
             except subprocess.TimeoutExpired:
                 config_path = os.path.expanduser("~/.bankr/config.json")
                 try:
@@ -879,9 +871,9 @@ class MinerUI:
                     pass
                 return jsonify({"ok": False, "error": "CLI timed out. Run 'bankr login' in terminal, paste key above."})
             except FileNotFoundError:
-                return jsonify({"ok": False, "error": "bankr CLI not installed. npm i -g @bankr/cli or paste key from bankr.bot/api"})
-            except Exception as e:
-                return jsonify({"ok": False, "error": sanitize_log(str(e)[:200])})
+                return jsonify({"ok": False, "error": "Bankr CLI not installed. Install: npm i -g @bankr/cli"})
+            except Exception:
+                return jsonify({"ok": False, "error": "Verification failed. Please try again."})
 
         # --- Authenticated setup endpoints ---
         @app.route("/api/setup/wallet")
@@ -922,8 +914,8 @@ class MinerUI:
                 state.botcoin_balance = botcoin
                 state.bump()
                 return jsonify({"address": address, "eth": eth, "botcoin": botcoin})
-            except Exception as e:
-                return jsonify({"error": sanitize_log(str(e)[:200])})
+            except Exception:
+                return jsonify({"error": "Failed to load wallet. Please try again."})
 
         @app.route("/api/setup/check-stake")
         @auth
@@ -974,10 +966,10 @@ class MinerUI:
                     bankr.submit_transaction(stake["transaction"], "Stake BOTCOIN for mining")
                 return jsonify({"ok": True, "message": "Staked successfully!"})
             except Exception as e:
-                err = str(e).lower()
-                if "already" in err or "nothing" in err:
+                err_lower = str(e).lower()
+                if "already" in err_lower or "nothing" in err_lower:
                     return jsonify({"ok": True, "already": True, "message": "Already staked!"})
-                return jsonify({"ok": False, "message": sanitize_log(str(e)[:200])})
+                return jsonify({"ok": False, "message": "Staking failed. Check your BOTCOIN balance and try again."})
 
         @app.route("/api/setup/llm-credits")
         @auth
@@ -1088,9 +1080,9 @@ class MinerUI:
                     state.update_pending_tx(tx_id, "confirmed")
                 state.log("Staked BOTCOIN!")
                 return jsonify({"ok": True, "message": "Staked!"})
-            except Exception as e:
+            except Exception:
                 state.update_pending_tx(tx_id, "failed")
-                return jsonify({"ok": False, "message": sanitize_log(str(e)[:200])})
+                return jsonify({"ok": False, "message": "Staking failed. Check your BOTCOIN balance and ETH for gas."})
 
         @app.route("/api/unstake", methods=["POST"])
         @auth
@@ -1118,9 +1110,9 @@ class MinerUI:
                 state.bump()
                 state.log("Unstake requested — 24h cooldown")
                 return jsonify({"ok": True, "message": "Unstaking! 24h cooldown started."})
-            except Exception as e:
+            except Exception:
                 state.update_pending_tx(tx_id, "failed")
-                return jsonify({"ok": False, "message": sanitize_log(str(e)[:200])})
+                return jsonify({"ok": False, "message": "Unstaking failed. Please try again."})
 
         @app.route("/api/withdraw", methods=["POST"])
         @auth
@@ -1147,9 +1139,9 @@ class MinerUI:
                 state.bump()
                 state.log("BOTCOIN withdrawn!")
                 return jsonify({"ok": True, "message": "Withdrawn to wallet!"})
-            except Exception as e:
+            except Exception:
                 state.update_pending_tx(tx_id, "failed")
-                return jsonify({"ok": False, "message": sanitize_log(str(e)[:200])})
+                return jsonify({"ok": False, "message": "Withdrawal failed. Cooldown may not have elapsed."})
 
         @app.route("/api/refresh-staking")
         @auth
@@ -1185,12 +1177,14 @@ class MinerUI:
                                 state.wallet_botcoin = float(t.get("balance", 0))
                 state.bump()
                 return jsonify({"ok": True, "staked": staked})
-            except Exception as e:
-                return jsonify({"ok": False, "error": sanitize_log(str(e)[:100])})
+            except Exception:
+                return jsonify({"ok": False, "error": "Failed to refresh staking info."})
 
         @app.route("/api/logout", methods=["POST"])
+        @auth
+        @csrf
         def logout():
-            session_id = request.cookies.get("session_id")
+            session_id = g.session_id
             if session_id:
                 # Stop mining for this session
                 self._mining.remove_session(session_id)
@@ -1230,7 +1224,7 @@ class MinerUI:
         import logging
         logging.getLogger('werkzeug').setLevel(logging.ERROR)
         def run():
-            self._app.run(host="0.0.0.0", port=port, threaded=True, use_reloader=False)
+            self._app.run(host="127.0.0.1", port=port, threaded=True, use_reloader=False)
         self._server_thread = threading.Thread(target=run, daemon=True)
         self._server_thread.start()
         if open_browser:
