@@ -38,6 +38,44 @@ _rate_limits: dict[str, list[float]] = {}
 _rate_lock = threading.Lock()
 
 
+def _parse_bankr_balances(balances: dict, chain: str = "base") -> tuple[float, list]:
+    """Parse Bankr /agent/balances response. Returns (native_balance, token_list).
+
+    Bankr format:
+    {
+      "balances": {
+        "base": {
+          "nativeBalance": "0.01...",
+          "nativeUsd": "20.23",
+          "tokenBalances": [{"symbol": "BOTCOIN", "balance": "123", "address": "0x..."}]
+        }
+      }
+    }
+    """
+    native = 0.0
+    tokens = []
+    if isinstance(balances, dict):
+        chain_data = None
+        bal_root = balances.get("balances", {})
+        if isinstance(bal_root, dict):
+            chain_data = bal_root.get(chain, {})
+        if isinstance(chain_data, dict):
+            native = float(chain_data.get("nativeBalance", 0) or 0)
+            tokens = chain_data.get("tokenBalances", [])
+            if not isinstance(tokens, list):
+                tokens = []
+        else:
+            # Fallback: try flat token list formats
+            for key in ("tokens", "balances", "data", "result"):
+                val = balances.get(key)
+                if isinstance(val, list):
+                    tokens = val
+                    break
+    elif isinstance(balances, list):
+        tokens = balances
+    return native, tokens
+
+
 def _check_rate_limit(key: str, max_requests: int, window_seconds: int) -> bool:
     """Returns True if request is allowed, False if rate-limited."""
     now = time.time()
@@ -352,8 +390,18 @@ input:focus,select:focus{border-color:var(--accent)}
 .status.warn{background:rgba(255,193,7,0.08);color:var(--yellow);border:1px solid rgba(255,193,7,0.15)}
 .status.err{background:rgba(255,71,87,0.08);color:var(--red);border:1px solid rgba(255,71,87,0.15)}
 .status.info{background:rgba(0,212,255,0.06);color:var(--accent);border:1px solid rgba(0,212,255,0.1)}
-.or{text-align:center;color:var(--muted);margin:16px 0;font-size:12px;text-transform:uppercase;letter-spacing:1px}
-.terms{font-size:11px;color:var(--dim);margin-top:8px}.terms a{color:var(--accent)}
+.login-card{background:var(--bg-elevated);border:1px solid var(--border-bright);border-radius:var(--radius);padding:20px;position:relative;overflow:hidden}
+.login-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--gradient);opacity:.6}
+.login-field{margin-bottom:4px}
+.input-group{display:flex;align-items:center;gap:8px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:4px 4px 4px 12px;transition:border-color .25s,box-shadow .25s}
+.input-group:focus-within{border-color:rgba(0,212,255,.35);box-shadow:0 0 0 3px rgba(0,212,255,.06)}
+.input-group .input-icon{color:var(--muted);font-size:15px;flex-shrink:0;width:18px;text-align:center;line-height:1}
+.input-group input{border:none!important;background:none!important;padding:8px 4px!important;flex:1;min-width:0}
+.input-group input:focus{box-shadow:none!important}
+.input-group .btn{flex-shrink:0;margin:0}
+.otp-reveal{max-height:0;overflow:hidden;opacity:0;transition:max-height .4s cubic-bezier(.4,0,.2,1),opacity .35s ease,margin .3s ease;margin-top:0}
+.otp-reveal.show{max-height:120px;opacity:1;margin-top:14px}
+.login-legal{font-size:11px;color:var(--dim);text-align:center;margin-top:16px;padding-top:14px;border-top:1px solid var(--border)}.login-legal a{color:var(--accent);opacity:.8;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:2px}.login-legal a:hover{opacity:1}
 .tier-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}
 .tier-card{padding:12px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--bg);text-align:center;cursor:pointer;transition:all .2s}
 .tier-card:hover{border-color:var(--accent);background:rgba(0,212,255,0.04)}
@@ -371,27 +419,26 @@ input:focus,select:focus{border-color:var(--accent)}
   <div class="step-header"><span class="step-num">1</span><span class="step-title">Log in to Bankr</span></div>
   <p class="step-desc">Sign up or log in with your email. Your wallet is created automatically.<br><a href="https://bankr.bot/" target="_blank">What is Bankr?</a></p>
   <div class="step-body">
-    <label>Email Address</label>
-    <div class="row">
-      <input type="email" id="emailInput" placeholder="you@example.com">
-      <button class="btn btn-accent btn-sm" id="btnSendOtp" onclick="sendOtp()">Send Code</button>
-    </div>
-    <div id="otpSection" style="display:none;margin-top:12px">
-      <label>Verification Code</label>
-      <div class="row">
-        <input type="text" id="otpInput" placeholder="123456" maxlength="8">
-        <button class="btn btn-green btn-sm" onclick="verifyOtp()">Verify</button>
+    <div class="login-card">
+      <div class="login-method active" id="loginEmail">
+        <div class="login-field">
+          <label>Email Address</label>
+          <div class="input-group">
+            <div class="input-icon">&#9993;</div>
+            <input type="email" id="emailInput" placeholder="you@example.com">
+            <button class="btn btn-accent btn-sm" id="btnSendOtp" onclick="sendOtp()">Send Code</button>
+          </div>
+        </div>
+        <div id="otpSection" class="otp-reveal">
+          <label>Verification Code</label>
+          <div class="input-group">
+            <div class="input-icon" style="font-size:16px">&#128274;</div>
+            <input type="text" id="otpInput" placeholder="123456" maxlength="8" style="font-family:var(--mono);letter-spacing:6px;font-size:18px">
+            <button class="btn btn-green btn-sm" onclick="verifyOtp()">Verify</button>
+          </div>
+        </div>
       </div>
-      <p class="terms">By verifying you accept our <a href="/terms" target="_blank">Terms of Service</a> and <a href="/privacy" target="_blank">Privacy Policy</a></p>
-    </div>
-    <div class="or">or</div>
-    <div id="apiKeySection">
-      <label>API Key</label>
-      <div class="row">
-        <input type="password" id="apiKeyInput" placeholder="bk_...">
-        <button class="btn btn-ghost btn-sm" onclick="connectApiKey()">Connect</button>
-      </div>
-      <p class="terms">Paste a key from <a href="https://bankr.bot/api" target="_blank">bankr.bot/api</a></p>
+      <div class="login-legal">By continuing you accept our <a href="/terms" target="_blank">Terms</a> &amp; <a href="/privacy" target="_blank">Privacy Policy</a></div>
     </div>
     <div id="step1Status"></div>
   </div>
@@ -452,6 +499,10 @@ input:focus,select:focus{border-color:var(--accent)}
   <div class="step-header"><span class="step-num">4</span><span class="step-title">Stake BOTCOIN</span></div>
   <p class="step-desc">Stake to earn credits. Higher stake = more credits per solve.</p>
   <div class="step-body">
+    <div style="display:flex;gap:10px;margin-bottom:14px">
+      <div class="info-box" style="flex:1"><div class="lbl">BOTCOIN (wallet)</div><div class="val" id="step4BotBal">—</div></div>
+      <div class="info-box" style="flex:1"><div class="lbl">BOTCOIN (staked)</div><div class="val" id="step4BotStaked" style="color:var(--green)">—</div></div>
+    </div>
     <div class="tier-cards">
       <div class="tier-card t1" onclick="doStake('25000000000000000000000000')"><div class="amt">25M</div><div class="cr">1 credit/solve</div></div>
       <div class="tier-card t2" onclick="doStake('50000000000000000000000000')"><div class="amt">50M</div><div class="cr">2 credits/solve</div></div>
@@ -505,9 +556,9 @@ function H(method,body){return{method,headers:{'Content-Type':'application/json'
 let currentStep=1;
 function updateProgress(){const p=document.getElementById('progress');p.innerHTML='';for(let i=1;i<=5;i++){const cls=i<currentStep?'seg done':i===currentStep?'seg active':'seg';p.innerHTML+='<div class="'+cls+'"></div>'}}
 updateProgress();
-function showStatus(elId,cls,msg){document.getElementById(elId).innerHTML='<div class="status '+cls+'">'+msg+'</div>'}
+function showStatus(elId,cls,msg){const el=document.getElementById(elId);if(!msg){el.innerHTML='';return}el.innerHTML='<div class="status '+cls+'">'+msg+'</div>'}
 function goStep(n){document.getElementById('step'+currentStep).classList.remove('active');currentStep=n;document.getElementById('step'+n).classList.add('active');updateProgress();if(n===3)loadWallet();if(n===4)checkStake();if(n===5)loadLLMCredits()}
-function confirmBankrConfig(){const a=document.getElementById('chkAgentApi').checked,rw=document.getElementById('chkReadWrite').checked,llm=document.getElementById('chkLlmGateway').checked;if(!a||!rw||!llm){showStatus('step2Status','warn','Please confirm all settings are enabled before continuing.');return}showStatus('step2Status','');goStep(3)}
+function confirmBankrConfig(){showStatus('step2Status','');goStep(3)}
 
 async function sendOtp(){
   const email=document.getElementById('emailInput').value.trim();
@@ -516,17 +567,8 @@ async function sendOtp(){
   showStatus('step1Status','info','<span class="spinner"></span> Sending code...');
   const r=await fetch('/api/setup/send-otp',H('POST',{email}));
   const d=await r.json();
-  if(d.ok){showStatus('step1Status','ok','Code sent! Check email.');document.getElementById('otpSection').style.display='block'}
+  if(d.ok){showStatus('step1Status','ok','Code sent! Check email.');document.getElementById('otpSection').classList.add('show')}
   else{showStatus('step1Status','err',d.error||'Failed');document.getElementById('btnSendOtp').disabled=false}
-}
-async function connectApiKey(){
-  const key=document.getElementById('apiKeyInput').value.trim();
-  if(!key||!key.startsWith('bk_')){showStatus('step1Status','err','Enter a valid API key (starts with bk_)');return}
-  showStatus('step1Status','info','<span class="spinner"></span> Connecting...');
-  const r=await fetch('/api/setup/connect',H('POST',{api_key:key}));
-  const d=await r.json();
-  if(d.ok){updateCSRF(d.csrf_token);showStatus('step1Status','ok','Connected!');setTimeout(()=>goStep(2),500)}
-  else showStatus('step1Status','err',d.error||'Failed')
 }
 async function verifyOtp(){
   const email=document.getElementById('emailInput').value.trim(),code=document.getElementById('otpInput').value.trim();
@@ -539,27 +581,40 @@ async function verifyOtp(){
   else showStatus('step1Status','err',d.error||'Failed')
 }
 async function loadWallet(){
-  showStatus('step3Status','info','<span class="spinner"></span> Loading...');
-  const r=await fetch('/api/setup/wallet');
-  const d=await r.json();
-  document.getElementById('walletAddr').textContent=d.address||'—';
-  document.getElementById('ethBal').textContent=d.eth!==undefined?parseFloat(d.eth).toFixed(4)+' ETH':'—';
-  document.getElementById('botBal').textContent=d.botcoin!==undefined?Number(d.botcoin).toLocaleString():'—';
-  const sr=await fetch('/api/setup/check-stake');
-  const sd=await sr.json();
-  const staked=sd.staked||0;
-  document.getElementById('botStaked').textContent=staked>0?Number(staked).toLocaleString():'0';
-  const totalBot=(d.botcoin||0)+staked;
-  const a=document.getElementById('fundingActions');a.innerHTML='';
-  if(d.eth<0.001)a.innerHTML+='<a href="https://app.across.to/bridge-and-swap" target="_blank" class="btn btn-ghost btn-sm">Bridge ETH</a>';
-  if(totalBot<25000000)a.innerHTML+='<a href="https://app.uniswap.org/swap?outputCurrency=0xA601877977340862Ca67f816eb079958E5bd0BA3&chain=base" target="_blank" class="btn btn-ghost btn-sm">Buy BOTCOIN</a>';
-  if(d.eth<0.001||totalBot<25000000){a.innerHTML+='<button class="btn btn-ghost btn-sm" onclick="loadWallet()">Refresh</button>';showStatus('step3Status','warn','Need ETH for gas and 25M+ BOTCOIN to mine.')}
-  else showStatus('step3Status','ok','Balances look good!')
+  console.log('[loadWallet] called');
+  showStatus('step3Status','info','<span class="spinner"></span> Loading wallet...');
+  try{
+    const r=await fetch('/api/setup/wallet');
+    console.log('[loadWallet] wallet status:',r.status);
+    if(!r.ok){showStatus('step3Status','err','Wallet request failed ('+r.status+')');return}
+    const d=await r.json();
+    if(d.error){showStatus('step3Status','err',d.error);return}
+    console.log('wallet response:',d);
+    document.getElementById('walletAddr').textContent=d.address||'—';
+    document.getElementById('ethBal').textContent=d.eth!==undefined?parseFloat(d.eth).toFixed(4)+' ETH':'—';
+    document.getElementById('botBal').textContent=d.botcoin!==undefined?Number(d.botcoin).toLocaleString():'—';
+    const sr=await fetch('/api/setup/check-stake');
+    const sd=await sr.json();
+    console.log('check-stake response:',sd);
+    const staked=sd.staked||0;
+    document.getElementById('botStaked').textContent=staked>0?Number(staked).toLocaleString():'0';
+    const totalBot=(d.botcoin||0)+staked;
+    const a=document.getElementById('fundingActions');a.innerHTML='';
+    if(d.eth<0.001)a.innerHTML+='<a href="https://app.across.to/bridge-and-swap" target="_blank" class="btn btn-ghost btn-sm">Bridge ETH</a>';
+    if(totalBot<25000000)a.innerHTML+='<a href="https://app.uniswap.org/swap?outputCurrency=0xA601877977340862Ca67f816eb079958E5bd0BA3&chain=base" target="_blank" class="btn btn-ghost btn-sm">Buy BOTCOIN</a>';
+    if(d.eth<0.001||totalBot<25000000){a.innerHTML+='<button class="btn btn-ghost btn-sm" onclick="loadWallet()">Refresh</button>';showStatus('step3Status','warn','Need ETH for gas and 25M+ BOTCOIN to mine.')}
+    else showStatus('step3Status','ok','Balances look good!')
+  }catch(e){showStatus('step3Status','err','Error: '+e.message);console.error('loadWallet error:',e)}
 }
 async function checkStake(){
   showStatus('step4Status','info','<span class="spinner"></span> Checking stake...');
-  try{const r=await fetch('/api/setup/check-stake');const d=await r.json();
-    if(d.staked>0){const tier=d.staked>=100000000?'3cr/solve':d.staked>=50000000?'2cr/solve':'1cr/solve';showStatus('step4Status','ok','Staked: '+Number(d.staked).toLocaleString(undefined,{maximumFractionDigits:0})+' BOTCOIN ('+tier+')')}
+  try{
+    const wr=await fetch('/api/setup/wallet');const wd=await wr.json();
+    document.getElementById('step4BotBal').textContent=wd.botcoin!==undefined?Number(wd.botcoin).toLocaleString():'0';
+    const r=await fetch('/api/setup/check-stake');const d=await r.json();
+    const staked=d.staked||0;
+    document.getElementById('step4BotStaked').textContent=staked>0?Number(staked).toLocaleString():'0';
+    if(staked>0){const tier=staked>=100000000?'3cr/solve':staked>=50000000?'2cr/solve':'1cr/solve';showStatus('step4Status','ok','Staked: '+Number(staked).toLocaleString(undefined,{maximumFractionDigits:0})+' BOTCOIN ('+tier+')')}
     else showStatus('step4Status','info','Not staked yet. Pick a tier above or skip for now.')
   }catch(e){showStatus('step4Status','info','Pick a tier to stake, or skip.')}
 }
@@ -820,6 +875,8 @@ function ago(ts){const s=Math.floor((Date.now()/1000)-ts);if(s<60)return s+'s ag
 function fmtCooldown(secs){if(secs<=0)return'Ready!';const h=Math.floor(secs/3600),m=Math.floor((secs%3600)/60),s=secs%60;return(h?h+'h ':'')+(m?m+'m ':'')+s+'s'}
 
 function connectSSE(){const es=new EventSource('/events');es.onmessage=function(e){const d=JSON.parse(e.data);if(d.version===lastVersion)return;lastVersion=d.version;update(d)};es.onerror=function(){es.close();setTimeout(connectSSE,2000)}}
+async function refreshBalances(){try{const r=await fetch('/api/refresh-balances');const d=await r.json();if(d.ok){lastVersion=-1}}catch(e){}}
+setTimeout(refreshBalances,500);setInterval(refreshBalances,120000);
 
 function update(d){
   // Phase
@@ -878,8 +935,7 @@ function update(d){
   // Cooldown
   const csec=d.unstake_cooldown_remaining||0;
   const cdSection=document.getElementById('cooldownSection');
-  const btnW=document.getElementById('btnWithdraw');
-  if(d.withdrawable_at>0){cdSection.style.display='block';document.getElementById('cooldownTimer').textContent=fmtCooldown(csec);document.getElementById('cooldownLabel').textContent=csec>0?'Withdrawal cooldown':'Ready to withdraw!';btnW.disabled=csec>0}else{cdSection.style.display='none';btnW.disabled=true}
+  if(cdSection){if(d.withdrawable_at>0){cdSection.style.display='block';document.getElementById('cooldownTimer').textContent=fmtCooldown(csec);document.getElementById('cooldownLabel').textContent=csec>0?'Withdrawal cooldown':'Ready to withdraw!'}else{cdSection.style.display='none'}}
   // Pending txs
   const txEl=document.getElementById('txList');const txs=d.pending_transactions||[];
   if(txs.length===0){txEl.innerHTML='<div style="color:var(--muted);font-size:12px;padding:8px 0">No transactions</div>'}
@@ -1103,20 +1159,37 @@ class MinerUI:
             if not _check_rate_limit(f"connect:{ip}", 5, 60):
                 return jsonify({"ok": False, "error": "Too many attempts. Try again in a minute."}), 429
 
-            # Verify the key works by calling Bankr
+            # Verify the key works by calling Bankr and get wallet
             try:
                 import httpx
-                resp = httpx.get("https://api.bankr.bot/agent/me",
+                me_resp = httpx.get("https://api.bankr.bot/agent/me",
                                  headers={"X-API-Key": api_key}, timeout=15)
-                if resp.status_code >= 400:
+                if me_resp.status_code >= 400:
                     return jsonify({"ok": False, "error": "Invalid API key. Check it at bankr.bot/api."})
+                me_data = me_resp.json()
+                wallets = me_data.get("wallets", [])
+                address = ""
+                for w in wallets:
+                    if w.get("chain", "").lower() in ("base", "evm", "ethereum"):
+                        address = w.get("address", "")
+                        break
+                if not address and wallets:
+                    address = wallets[0].get("address", "")
+                email = ""
+                for s in me_data.get("socialAccounts", []):
+                    if s.get("platform") == "email":
+                        email = s.get("username", "")
+                        break
             except Exception:
                 return jsonify({"ok": False, "error": "Could not verify key. Please try again."})
 
             session_id = sessions.create_session(api_key)
-            self._create_state(session_id)
+            state = self._create_state(session_id)
+            state.miner_address = address
+            sessions.update_miner_address(session_id, address)
             csrf_token = sessions.get_csrf_token(session_id)
-            resp = jsonify({"ok": True, "csrf_token": csrf_token})
+            short = address[:6] + "..." + address[-4:] if len(address) > 12 else address
+            resp = jsonify({"ok": True, "csrf_token": csrf_token, "wallet": short, "email": email})
             resp.set_cookie("session_id", session_id,
                             httponly=True, samesite="Strict", max_age=86400,
                             secure=request.is_secure)
@@ -1266,20 +1339,21 @@ class MinerUI:
                 sessions.update_miner_address(session_id, address)
 
                 balances = bankr.get_balances("base")
-                eth, botcoin = 0.0, 0.0
-                tokens = balances if isinstance(balances, list) else balances.get("tokens", balances.get("balances", []))
-                if isinstance(tokens, list):
-                    for t in tokens:
-                        sym = t.get("symbol", "").upper()
-                        if sym == "ETH":
-                            eth = float(t.get("balance", 0))
-                        if sym == "BOTCOIN" or t.get("address", "").lower() == "0xa601877977340862ca67f816eb079958e5bd0ba3":
-                            botcoin = float(t.get("balance", 0))
+                eth, tokens = _parse_bankr_balances(balances, "base")
+                botcoin = 0.0
+                for t in tokens:
+                    sym = (t.get("symbol") or "").upper()
+                    addr = (t.get("address") or t.get("tokenAddress") or "").lower()
+                    bal = float(t.get("balance") or t.get("amount") or t.get("formattedBalance") or 0)
+                    if sym == "BOTCOIN" or addr == "0xa601877977340862ca67f816eb079958e5bd0ba3":
+                        botcoin = bal
                 state.eth_balance = eth
                 state.botcoin_balance = botcoin
+                state.wallet_botcoin = botcoin
                 state.bump()
                 return jsonify({"address": address, "eth": eth, "botcoin": botcoin})
-            except Exception:
+            except Exception as e:
+                import traceback; traceback.print_exc()
                 return jsonify({"error": "Failed to load wallet. Please try again."})
 
         @app.route("/api/setup/check-stake")
@@ -1288,6 +1362,7 @@ class MinerUI:
             session_id = g.session_id
             state = self._get_state(session_id)
             miner = state.miner_address if state else ""
+            print(f"[check-stake] miner={miner!r}")
             if not miner:
                 return jsonify({"staked": 0, "eligible": False})
             try:
@@ -1295,11 +1370,13 @@ class MinerUI:
                 coord = CoordinatorClient(miner)
                 staked = coord.get_staked_amount(miner)
                 eligible = coord.is_eligible(miner)
+                print(f"[check-stake] staked={staked} eligible={eligible}")
                 if state:
                     state.staked_amount = staked if staked >= 0 else 0
                     state.bump()
                 return jsonify({"staked": staked, "eligible": eligible})
-            except Exception:
+            except Exception as e:
+                print(f"[check-stake] ERROR: {e}")
                 return jsonify({"staked": -1, "eligible": False})
 
         @app.route("/api/setup/stake", methods=["POST"])
@@ -1374,6 +1451,57 @@ class MinerUI:
             return jsonify({"ok": True})
 
         # --- Dashboard API (all authenticated + CSRF) ---
+        @app.route("/api/refresh-balances")
+        @auth
+        def refresh_balances():
+            session_id = g.session_id
+            api_key = sessions.get_api_key(session_id)
+            state = self._get_state(session_id)
+            if not api_key or not state:
+                return jsonify({"ok": False})
+            try:
+                from bankr_client import BankrClient
+                bankr = BankrClient(api_key)
+
+                # Resolve wallet address if not yet set
+                if not state.miner_address:
+                    me = bankr.get_me()
+                    wallets = me.get("wallets", [])
+                    address = ""
+                    for w in wallets:
+                        if w.get("chain", "").lower() in ("base", "evm", "ethereum"):
+                            address = w.get("address", "")
+                            break
+                    if not address and wallets:
+                        address = wallets[0].get("address", "")
+                    state.miner_address = address
+                    sessions.update_miner_address(session_id, address)
+
+                balances = bankr.get_balances("base")
+                eth, tokens = _parse_bankr_balances(balances, "base")
+                botcoin = 0.0
+                for t in tokens:
+                    sym = (t.get("symbol") or "").upper()
+                    addr = (t.get("address") or t.get("tokenAddress") or "").lower()
+                    bal = float(t.get("balance") or t.get("amount") or t.get("formattedBalance") or 0)
+                    if sym == "BOTCOIN" or addr == "0xa601877977340862ca67f816eb079958e5bd0ba3":
+                        botcoin = bal
+                state.eth_balance = eth
+                state.botcoin_balance = botcoin
+                state.wallet_botcoin = botcoin
+
+                miner = state.miner_address
+                if miner:
+                    from coordinator_client import CoordinatorClient
+                    coord = CoordinatorClient(miner)
+                    staked = coord.get_staked_amount(miner)
+                    state.staked_amount = staked if staked >= 0 else 0
+
+                state.bump()
+                return jsonify({"ok": True})
+            except Exception:
+                return jsonify({"ok": False})
+
         @app.route("/api/control", methods=["POST"])
         @auth
         @csrf
@@ -1571,14 +1699,14 @@ class MinerUI:
                     from bankr_client import BankrClient
                     bankr = BankrClient(api_key)
                     balances = bankr.get_balances("base")
-                    tokens = balances if isinstance(balances, list) else balances.get("tokens", balances.get("balances", []))
-                    if isinstance(tokens, list):
-                        for t in tokens:
-                            sym = t.get("symbol", "").upper()
-                            if sym == "ETH":
-                                state.eth_balance = float(t.get("balance", 0))
-                            if sym == "BOTCOIN" or t.get("address", "").lower() == "0xa601877977340862ca67f816eb079958e5bd0ba3":
-                                state.wallet_botcoin = float(t.get("balance", 0))
+                    eth, tokens = _parse_bankr_balances(balances, "base")
+                    state.eth_balance = eth
+                    for t in tokens:
+                        sym = (t.get("symbol") or "").upper()
+                        addr = (t.get("address") or t.get("tokenAddress") or "").lower()
+                        bal = float(t.get("balance") or t.get("amount") or t.get("formattedBalance") or 0)
+                        if sym == "BOTCOIN" or addr == "0xa601877977340862ca67f816eb079958e5bd0ba3":
+                            state.wallet_botcoin = bal
                 state.bump()
                 return jsonify({"ok": True, "staked": staked})
             except Exception:
