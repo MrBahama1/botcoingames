@@ -32,6 +32,7 @@ class MiningManager:
     def start_mining(self, session_id: str, api_key: str, model: str,
                      state: MinerState, auto_topup: bool = False,
                      topup_amount: float = 25, topup_threshold: float = 5.0,
+                     pool_address: str = "",
                      ui_log=None, ui_set_phase=None, ui_update=None):
         """Start a mining loop for a user session."""
         with self._lock:
@@ -44,7 +45,7 @@ class MiningManager:
             try:
                 _run_mining(
                     api_key, model, state, auto_topup,
-                    topup_amount, topup_threshold,
+                    topup_amount, topup_threshold, pool_address,
                     ui_log, ui_set_phase, ui_update, session_id, self
                 )
             except Exception as e:
@@ -94,7 +95,7 @@ class MiningManager:
 
 
 def _run_mining(api_key, model, state, auto_topup, topup_amount, topup_threshold,
-                ui_log, ui_set_phase, ui_update, session_id, manager):
+                pool_address, ui_log, ui_set_phase, ui_update, session_id, manager):
     """Initialize clients and run mining loop (called in background thread)."""
 
     class UIAdapter:
@@ -123,7 +124,7 @@ def _run_mining(api_key, model, state, auto_topup, topup_amount, topup_threshold
     ui.set_phase("SETUP")
 
     bankr = BankrClient(api_key)
-    coordinator = CoordinatorClient(miner="")
+    coordinator = CoordinatorClient(miner="", pool_address=pool_address)
     is_claude_code = model.startswith("claude-code-")
     credits_monitor = CreditsMonitor(
         bankr, threshold=topup_threshold, topup_amount=topup_amount, ui=ui
@@ -151,10 +152,13 @@ def _run_mining(api_key, model, state, auto_topup, topup_amount, topup_threshold
 
     coordinator.miner = miner
     state.miner_address = miner
+    state.pool_address = pool_address
     state.model = model
     state.setup_complete = True
     state.bump()
     ui.log(f"Wallet: {miner}")
+    if pool_address:
+        ui.log(f"Pool mode: mining through {pool_address}")
 
     # Check on-chain stake
     staked = coordinator.get_staked_amount(miner)
@@ -212,7 +216,7 @@ def _run_mining(api_key, model, state, auto_topup, topup_amount, topup_threshold
     # Start claim checker with its own client instances to avoid token conflicts
     from claims import ClaimChecker
     claim_bankr = BankrClient(api_key)
-    claim_coord = CoordinatorClient(miner)
+    claim_coord = CoordinatorClient(miner, pool_address=pool_address)
     claim_coord.authenticate(claim_bankr)
     claim_checker = ClaimChecker(claim_coord, claim_bankr, state, ui)
     claim_checker.start()

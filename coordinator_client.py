@@ -16,8 +16,9 @@ class InsufficientBalanceError(Exception):
 
 
 class CoordinatorClient:
-    def __init__(self, miner: str):
+    def __init__(self, miner: str, pool_address: str = ""):
         self.miner = miner
+        self.pool_address = pool_address  # if set, mine through pool contract
         self.client = httpx.Client(
             base_url=COORDINATOR_URL,
             headers={
@@ -73,12 +74,17 @@ class CoordinatorClient:
         if not self._token or age > 600:
             self.authenticate(bankr)
 
+    @property
+    def effective_miner(self) -> str:
+        """The address used for challenge/submit — pool address if set, else EOA."""
+        return self.pool_address or self.miner
+
     def get_challenge(self, nonce: str = None) -> dict:
         """Request a new challenge."""
         if nonce is None:
             nonce = secrets.token_hex(16)
         resp = with_retry(lambda: self.client.get(
-            f"/v1/challenge?miner={self.miner}&nonce={nonce}",
+            f"/v1/challenge?miner={self.effective_miner}&nonce={nonce}",
             headers=self._auth_headers(),
         ))
         resp["_nonce"] = nonce
@@ -86,14 +92,17 @@ class CoordinatorClient:
 
     def submit_answer(self, challenge_id: str, artifact: str, nonce: str) -> dict:
         """Submit solved artifact."""
+        payload = {
+            "miner": self.effective_miner,
+            "challengeId": challenge_id,
+            "artifact": artifact,
+            "nonce": nonce,
+        }
+        if self.pool_address:
+            payload["pool"] = True
         return with_retry(lambda: self.client.post(
             "/v1/submit",
-            json={
-                "miner": self.miner,
-                "challengeId": challenge_id,
-                "artifact": artifact,
-                "nonce": nonce,
-            },
+            json=payload,
             headers=self._auth_headers(),
         ))
 
@@ -122,8 +131,11 @@ class CoordinatorClient:
 
     def get_claim_calldata(self, epochs: list) -> dict:
         epoch_str = ",".join(str(e) for e in epochs)
+        url = f"/v1/claim-calldata?epochs={epoch_str}"
+        if self.pool_address:
+            url += f"&target={self.pool_address}"
         return with_retry(lambda: self.client.get(
-            f"/v1/claim-calldata?epochs={epoch_str}",
+            url,
             headers=self._auth_headers(),
         ))
 
@@ -136,8 +148,11 @@ class CoordinatorClient:
 
     def get_bonus_claim_calldata(self, epochs: list) -> dict:
         epoch_str = ",".join(str(e) for e in epochs)
+        url = f"/v1/bonus/claim-calldata?epochs={epoch_str}"
+        if self.pool_address:
+            url += f"&target={self.pool_address}"
         return with_retry(lambda: self.client.get(
-            f"/v1/bonus/claim-calldata?epochs={epoch_str}",
+            url,
             headers=self._auth_headers(),
         ))
 

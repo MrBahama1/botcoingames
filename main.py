@@ -29,7 +29,7 @@ def main():
     ui = MinerUI()
 
     # Wire up the setup finish callback — starts mining when wizard completes
-    def on_setup_finish(session_id, api_key, model, state, auto_topup):
+    def on_setup_finish(session_id, api_key, model, state, auto_topup, pool_address=""):
         from mining_manager import MiningManager
         ui._mining.start_mining(
             session_id=session_id,
@@ -39,6 +39,7 @@ def main():
             auto_topup=auto_topup,
             topup_amount=args.topup_amount,
             topup_threshold=args.topup_threshold,
+            pool_address=pool_address,
             ui_log=lambda msg: state.log(msg),
             ui_set_phase=lambda phase: _set_phase(state, phase),
             ui_update=lambda: state.bump(),

@@ -565,6 +565,11 @@ input:focus,select:focus{border-color:var(--accent)}
         </label>
       </div>
     </div>
+    <div style="margin-top:16px;padding:14px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm)">
+      <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:8px">Pool Mining <span style="font-size:11px;color:var(--dim);font-weight:400">(optional)</span></div>
+      <div style="font-size:12px;color:var(--dim);margin-bottom:8px">If you're mining through a pool contract, enter its address. Leave blank for direct mining.</div>
+      <input type="text" id="poolAddressInput" placeholder="0x... pool contract address (optional)" style="width:100%;font-family:var(--mono);font-size:12px">
+    </div>
     <div id="step5Status"></div>
     <div style="display:flex;gap:8px;margin-top:16px">
       <button class="btn btn-ghost btn-sm" onclick="goStep(4)">Back</button>
@@ -675,8 +680,10 @@ async function loadLLMCredits(){
 }
 async function finishSetup(){
   const model=document.getElementById('modelSetupSelect').value,autoTopup=document.getElementById('autoTopupCheck').checked;
+  const poolAddr=(document.getElementById('poolAddressInput').value||'').trim();
+  if(poolAddr&&!/^0x[a-fA-F0-9]{40}$/.test(poolAddr)){showStatus('step5Status','err','Invalid pool address format');return}
   showStatus('step5Status','info','<span class="spinner"></span> Starting...');
-  const r=await fetch('/api/setup/finish',H('POST',{model,auto_topup:autoTopup}));
+  const r=await fetch('/api/setup/finish',H('POST',{model,auto_topup:autoTopup,pool_address:poolAddr}));
   const d=await r.json();
   if(d.ok){goStep(6);setTimeout(()=>{window.location.href='/dashboard'},2000)}
   else showStatus('step5Status','err',d.error||'Failed')
@@ -779,6 +786,7 @@ DASHBOARD_HTML = r"""<!DOCTYPE html>
     <div class="logo"><span class="grad-text">BOTCOIN</span> MINER</div>
     <span class="phase" id="phaseBadge" style="background:#d4a017"><span class="dot"></span> LOADING</span>
     <span class="wallet-tag" id="walletInfo" onclick="copyWallet()" title="Click to copy full address"><span class="copy-tip" id="copyTip">Copied!</span></span>
+    <span id="poolInfo" style="display:none;font-size:11px;color:var(--accent);margin-left:8px;padding:2px 8px;border:1px solid var(--accent);border-radius:4px"></span>
   </div>
   <div class="controls">
     <select id="modelSelect" title="LLM Model">MODELOPTIONS</select>
@@ -976,6 +984,7 @@ function update(d){
   // Wallet
   const addr=d.miner_address;fullWalletAddr=addr||'';const short=addr&&addr.length>12?addr.slice(0,6)+'...'+addr.slice(-4):'';
   const wi=document.getElementById('walletInfo');wi.childNodes.forEach(n=>{if(n.nodeType===3)n.remove()});wi.insertAdjacentText('beforeend',short);
+  const poolEl=document.getElementById('poolInfo');if(poolEl){if(d.pool_address){poolEl.style.display='inline';poolEl.textContent='Pool: '+d.pool_address.slice(0,6)+'...'+d.pool_address.slice(-4)}else{poolEl.style.display='none'}}
   // Stats
   document.getElementById('sSolves').textContent=d.total_solves;
   document.getElementById('sFails').textContent=d.total_fails;
@@ -1625,19 +1634,25 @@ class MinerUI:
             body = request.get_json(silent=True) or {}
             model = body.get("model", "claude-sonnet-4-6")
             auto_topup = body.get("auto_topup", False)
+            pool_address = (body.get("pool_address") or "").strip()
 
             if model not in VALID_MODELS:
                 return jsonify({"ok": False, "error": "Invalid model"})
 
+            # Validate pool address format if provided
+            if pool_address and not re.match(r'^0x[a-fA-F0-9]{40}$', pool_address):
+                return jsonify({"ok": False, "error": "Invalid pool address"})
+
             state = self._get_state(session_id) or self._create_state(session_id)
             state.model = model
             state.auto_topup = auto_topup
+            state.pool_address = pool_address
             state.setup_complete = True
             state.bump()
 
             api_key = sessions.get_api_key(session_id)
             if api_key and self._on_setup_finish:
-                self._on_setup_finish(session_id, api_key, model, state, auto_topup)
+                self._on_setup_finish(session_id, api_key, model, state, auto_topup, pool_address)
             return jsonify({"ok": True})
 
         # --- Dashboard API (all authenticated + CSRF) ---
@@ -1720,8 +1735,9 @@ class MinerUI:
                 if api_key and self._on_setup_finish:
                     model = state.model or "claude-sonnet-4-6"
                     auto_topup = getattr(state, 'auto_topup', False)
+                    pool_address = getattr(state, 'pool_address', '')
                     state.setup_complete = True
-                    self._on_setup_finish(session_id, api_key, model, state, auto_topup)
+                    self._on_setup_finish(session_id, api_key, model, state, auto_topup, pool_address)
             elif action == "stop":
                 state.mining_active = False
                 state.bump()

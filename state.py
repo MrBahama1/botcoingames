@@ -44,6 +44,9 @@ class MinerState:
     _lock: threading.Lock = field(default_factory=threading.Lock, repr=False)
     _version: int = 0
 
+    # Pool mode
+    pool_address: str = ""  # pool contract address (empty = direct EOA mining)
+
     # Setup wizard state (api_key removed — lives in SessionManager)
     setup_complete: bool = False
     setup_step: str = ""
@@ -131,6 +134,7 @@ class MinerState:
             return {
                 "phase": self.phase,
                 "miner_address": self.miner_address,
+                "pool_address": self.pool_address,
                 "model": self.model,
                 "epoch_id": self.epoch_id,
                 "total_solves": self.total_solves,
