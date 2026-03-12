@@ -101,22 +101,32 @@ class MiningLoop:
         num_constraints = len(challenge.get("constraints", []))
         doc_len = len(challenge.get("doc", ""))
 
+        has_proposal = bool(challenge.get("proposal"))
+
         state.current_challenge_id = challenge_id[:16] + "..."
         state.epoch_id = epoch_id
         state.challenge_questions = challenge.get("questions", [])
         state.challenge_constraints = challenge.get("constraints", [])
         state.challenge_doc_preview = challenge.get("doc", "")[:500]
         state.challenge_doc_full = challenge.get("doc", "")
+        state.proposal = challenge.get("proposal", "")
         state.solve_artifact = ""
         state.solve_passed = ""
         state.solve_failed_constraints = []
         state.solve_verification_issues = []
         state.bump()
-        self.ui.log(
-            f"Challenge: {challenge_id[:16]}... | "
-            f"Epoch {epoch_id} | {num_questions}Q | {num_constraints}C | "
-            f"{doc_len} chars | {credits_per_solve} credit/solve"
-        )
+
+        log_parts = [
+            f"Challenge: {challenge_id[:16]}...",
+            f"Epoch {epoch_id}",
+            f"{num_questions}Q",
+            f"{num_constraints}C",
+            f"{doc_len} chars",
+            f"{credits_per_solve} credit/solve",
+        ]
+        if has_proposal:
+            log_parts.append("PROPOSAL VOTE")
+        self.ui.log(" | ".join(log_parts))
 
         # 4. Solve via LLM (use current model from state in case user changed it)
         current_model = state.model
@@ -163,12 +173,15 @@ class MiningLoop:
             raw_response = self.llm.solve(system_prompt, user_prompt, on_stream=_on_stream)
             solve_time = time.time() - start_t
 
-        artifact = extract_artifact(raw_response)
+        artifact = extract_artifact(raw_response, has_proposal=has_proposal)
         state.llm_output = f"Solve time: {solve_time:.1f}s\n\n{raw_response[:4000]}"
         state.solve_artifact = artifact
         state.solve_time = solve_time
         state.bump()
         self.ui.log(f"Solved in {solve_time:.1f}s | Artifact: {artifact[:80]}...")
+        if has_proposal and "\nVOTE:" in artifact:
+            vote_line = [l for l in artifact.split("\n") if l.startswith("VOTE:")][0]
+            self.ui.log(f"Proposal vote: {vote_line}")
 
         # 5. Local verification
         self.ui.set_phase("VERIFYING")

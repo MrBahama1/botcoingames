@@ -1015,6 +1015,7 @@ function update(d){
       d.challenge_constraints.forEach((c,i)=>{const isFail=failSet.has(i);const isPass=d.solve_passed==='pass';
         const cls=isFail?'constraint-fail':(isPass?'constraint-pass':'');
         html+='<div class="constraint-item"><span class="constraint-idx '+cls+'">C'+(i+1)+'</span><span class="'+cls+'">'+esc(c)+'</span></div>'})}
+    if(d.proposal){html+='<div style="font-size:10px;font-weight:700;color:var(--yellow);text-transform:uppercase;letter-spacing:.5px;margin:12px 0 4px">Proposal Vote</div><div style="padding:8px 10px;background:rgba(247,201,72,0.08);border:1px solid var(--yellow);border-radius:6px;font-size:12px;color:var(--text)">'+esc(typeof d.proposal==="string"?d.proposal:JSON.stringify(d.proposal))+'</div>'}
     cc.innerHTML=html}else if(d.phase!=='INIT'){cc.innerHTML='<div style="color:var(--muted);font-size:12px">Requesting challenge...</div>'}
   // Log
   const logEl=document.getElementById('logContent');

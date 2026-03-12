@@ -54,6 +54,12 @@ QUESTIONS:
     if solve_instructions:
         user_prompt += f"\nSOLVE INSTRUCTIONS:\n{solve_instructions}\n"
 
+    # Proposal voting
+    proposal = challenge.get("proposal")
+    if proposal:
+        proposal_text = proposal if isinstance(proposal, str) else proposal.get("text", str(proposal))
+        user_prompt += f"\nPROPOSAL FOR VOTE:\n{proposal_text}\n"
+
     user_prompt += """
 INSTRUCTIONS:
 1. For each company, extract: revenues (Q1-Q4, compute annual total), debt-to-equity, satisfaction score, employee count, CEO, HQ city/country, sector, founded year. Ignore hypothetical/speculative statements.
@@ -66,7 +72,21 @@ INSTRUCTIONS:
    - Scan entire artifact for forbidden letter (case-insensitive)
    - Check equation arithmetic
    - Confirm required names are present and spelled correctly
-6. If any check fails, fix and re-verify.
+6. If any check fails, fix and re-verify."""
+
+    if proposal:
+        user_prompt += """
+7. After your artifact, add your vote on the proposal on new lines:
+   VOTE: yes  (or)  VOTE: no
+   REASONING: <your reasoning in 100 words or less>
+   Base your vote on whether the proposal benefits the BOTCOIN mining community.
+
+Output your final artifact inside <ARTIFACT> tags, followed by your vote:
+<ARTIFACT>your single-line artifact here</ARTIFACT>
+VOTE: yes
+REASONING: brief explanation"""
+    else:
+        user_prompt += """
 
 Output your final artifact inside <ARTIFACT> tags on its own line:
 <ARTIFACT>your single-line artifact here</ARTIFACT>"""
@@ -74,21 +94,62 @@ Output your final artifact inside <ARTIFACT> tags on its own line:
     return system_prompt, user_prompt
 
 
-def extract_artifact(raw_response: str) -> str:
-    """Extract the artifact from LLM response — look for <ARTIFACT> tags first, then last line."""
+def extract_artifact(raw_response: str, has_proposal: bool = False) -> str:
+    """Extract the artifact from LLM response — look for <ARTIFACT> tags first, then last line.
+
+    If has_proposal is True, also extracts VOTE/REASONING lines and appends them.
+    """
+    vote_suffix = ""
+    if has_proposal:
+        vote_suffix = _extract_vote(raw_response)
+
     # Try to extract from <ARTIFACT> tags
     match = re.search(r'<ARTIFACT>(.*?)</ARTIFACT>', raw_response, re.DOTALL)
     if match:
         artifact = match.group(1).strip()
         # Remove any line breaks within the artifact
         artifact = ' '.join(artifact.split())
+        if vote_suffix:
+            artifact += "\n" + vote_suffix
         return artifact
 
-    # Fallback: take last non-empty line
+    # Fallback: take last non-empty line (before any VOTE line)
     lines = [l.strip() for l in raw_response.strip().split("\n") if l.strip()]
     if not lines:
         return raw_response.strip()
-    return lines[-1]
+
+    # If there's a proposal, find the artifact line (before VOTE:)
+    if has_proposal:
+        for i, line in enumerate(lines):
+            if line.upper().startswith("VOTE:"):
+                artifact = lines[i - 1] if i > 0 else lines[0]
+                if vote_suffix:
+                    artifact += "\n" + vote_suffix
+                return artifact
+
+    return lines[-1] + ("\n" + vote_suffix if vote_suffix else "")
+
+
+def _extract_vote(raw_response: str) -> str:
+    """Extract VOTE and REASONING lines from LLM response."""
+    vote_match = re.search(r'^VOTE:\s*(yes|no)', raw_response, re.MULTILINE | re.IGNORECASE)
+    reasoning_match = re.search(r'^REASONING:\s*(.+)', raw_response, re.MULTILINE | re.IGNORECASE)
+
+    if not vote_match:
+        return ""
+
+    vote = vote_match.group(1).lower()
+    parts = [f"VOTE: {vote}"]
+
+    if reasoning_match:
+        reasoning = reasoning_match.group(1).strip()
+        # Cap at 100 words
+        words = reasoning.split()
+        if len(words) > 100:
+            reasoning = ' '.join(words[:100])
+        parts.append(f"REASONING: {reasoning}")
+
+    return "\n".join(parts)
 
 
 def verify_artifact(artifact: str, challenge: dict) -> tuple:

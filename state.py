@@ -34,6 +34,7 @@ class MinerState:
     challenge_constraints: list = field(default_factory=list)
     challenge_doc_preview: str = ""  # first 500 chars of doc
     challenge_doc_full: str = ""  # full doc text
+    proposal: str = ""  # governance proposal text (if any)
     solve_artifact: str = ""
     solve_passed: str = ""  # "", "pass", "fail"
     solve_failed_constraints: list = field(default_factory=list)
@@ -149,6 +150,7 @@ class MinerState:
                 "challenge_questions": list(self.challenge_questions),
                 "challenge_constraints": list(self.challenge_constraints),
                 "challenge_doc_preview": self.challenge_doc_preview,
+                "proposal": self.proposal if isinstance(self.proposal, str) else str(self.proposal),
                 "solve_artifact": self.solve_artifact,
                 "solve_passed": self.solve_passed,
                 "solve_failed_constraints": list(self.solve_failed_constraints),
