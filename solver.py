@@ -1,6 +1,14 @@
 """Prompt builder, artifact extraction, and local verification."""
 
+import os
 import re
+
+# Load SKILL.md context at module level (once)
+_SKILL_CONTEXT = ""
+_skill_path = os.path.join(os.path.dirname(__file__), "SKILL.md")
+if os.path.exists(_skill_path):
+    with open(_skill_path, "r") as _f:
+        _SKILL_CONTEXT = _f.read()
 
 
 def build_prompt(challenge: dict) -> tuple:
@@ -20,6 +28,13 @@ def build_prompt(challenge: dict) -> tuple:
         "then build a single-line artifact satisfying ALL constraints exactly. "
         "Answers must match a company name from the provided list exactly."
     )
+
+    if _SKILL_CONTEXT:
+        system_prompt += (
+            "\n\n--- BOTCOIN MINING PROTOCOL REFERENCE ---\n"
+            + _SKILL_CONTEXT
+            + "\n--- END REFERENCE ---"
+        )
 
     user_prompt = f"""DOCUMENT:
 {doc}

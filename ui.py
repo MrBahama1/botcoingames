@@ -10,6 +10,7 @@ Security hardened:
 """
 
 import json
+import os
 import re
 import time
 import threading
@@ -1262,6 +1263,17 @@ class MinerUI:
         @app.route("/privacy")
         def privacy():
             return PRIVACY_HTML
+
+        @app.route("/skill")
+        def skill():
+            """Serve SKILL.md as plain text for agents to consume."""
+            skill_path = os.path.join(os.path.dirname(__file__), "SKILL.md")
+            try:
+                with open(skill_path, "r") as f:
+                    content = f.read()
+                return Response(content, mimetype="text/plain; charset=utf-8")
+            except FileNotFoundError:
+                return Response("SKILL.md not found", status=404, mimetype="text/plain")
 
         # --- SSE (authenticated) ---
         @app.route("/events")
